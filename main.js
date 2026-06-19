@@ -281,8 +281,19 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
     } catch (e) {}
   }
   
+  let adjustedPrompt = prompt;
+  if (mode === 'fast') {
+    if (!prompt.trim().startsWith('/fast')) {
+      adjustedPrompt = `/fast ${prompt}`;
+    }
+  } else if (mode === 'planning') {
+    if (!prompt.trim().startsWith('/planning')) {
+      adjustedPrompt = `/planning ${prompt}`;
+    }
+  }
+  
   const agyBin = getAgyExecutablePath();
-  const args = ['--print', prompt];
+  const args = ['--print', adjustedPrompt];
   
   if (conversationId) {
     args.push('--conversation', conversationId);
@@ -292,12 +303,9 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
     args.push('--add-dir', workspacePath);
   }
 
-  // Apply model override based on active mode
+  // Load model from settings if running in planning mode
   let selectedModel = '';
-  if (mode === 'fast') {
-    selectedModel = 'Gemini 3.5 Flash (High)';
-  } else {
-    // In planning mode, load model from settings
+  if (mode === 'planning') {
     const settingsPath = path.join(getCliDir(), 'settings.json');
     try {
       if (fs.existsSync(settingsPath)) {

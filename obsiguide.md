@@ -107,21 +107,20 @@
 <!-- AGENT-MAINTAINED: update during work -->
 - Created [Antigravity-GUI.md](file:///E:/Vault/02_Projects/Antigravity-GUI.md)
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
-- Created [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js)
-- Created [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js)
+- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to prepend CLI prompt execution with slash commands (/fast or /planning) according to active GUI mode, instead of model flag overrides.
+- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose mode parameter in runPrompt bridge.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to bind planning-mode-btn and fast-mode-btn click listeners and pass activeMode parameter in prompt runs.
 - Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to parse User Prompts via Key 19 path and prioritize tool calls.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) with turn grouping and collapsible execution step UI timelines.
-- Implemented language selection dropdown (en/zh) and live dynamic DOM translation mechanism.
-- Fixed HTML Injection UI bug in chat messages, previews, and parameters by escaping tags.
+- Updated [settings.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/settings.html) to list only the three verified Gemini 3.5 Flash model variants (High, Medium, Low) supported by the CLI backend.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Run `npm start` to open the GUI application and verify the new dialogue layout on the loaded conversations.
+- Run `npm start` to launch the GUI and test planning/fast mode prompt execution and verified Settings model loading.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-19
-- status: conversation-history-parsed-as-dialogue-turns
+- status: prompt-prefixing-and-model-list-resolved
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
