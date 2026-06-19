@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
   
   // CLI Executions
-  runPrompt: (prompt, conversationId, workspacePath) => ipcRenderer.invoke('cli:run-prompt', prompt, conversationId, workspacePath),
+  runPrompt: (prompt, conversationId, workspacePath, mode) => ipcRenderer.invoke('cli:run-prompt', prompt, conversationId, workspacePath, mode),
   stopPrompt: () => ipcRenderer.invoke('cli:stop-prompt'),
   getChangelog: () => ipcRenderer.invoke('cli:get-changelog'),
   checkForUpdates: () => ipcRenderer.invoke('cli:check-updates'),

@@ -266,6 +266,38 @@ async function initConversationView() {
   
   promptInput.addEventListener('input', updateInputState);
 
+  // Fast / Planning Mode toggle buttons configuration
+  const planningModeBtn = document.getElementById('planning-mode-btn');
+  const fastModeBtn = document.getElementById('fast-mode-btn');
+  let activeMode = 'planning'; // Default mode matches TUI / print behavior
+
+  function updateModeUI() {
+    if (!planningModeBtn || !fastModeBtn) return;
+    if (activeMode === 'planning') {
+      planningModeBtn.className = 'px-3 py-1 bg-primary text-on-primary text-label-sm font-medium rounded hover:opacity-90 transition-opacity';
+      fastModeBtn.className = 'px-3 py-1 bg-surface-variant text-on-surface-variant text-label-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors';
+    } else {
+      fastModeBtn.className = 'px-3 py-1 bg-primary text-on-primary text-label-sm font-medium rounded hover:opacity-90 transition-opacity';
+      planningModeBtn.className = 'px-3 py-1 bg-surface-variant text-on-surface-variant text-label-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors';
+    }
+  }
+
+  if (planningModeBtn && fastModeBtn) {
+    planningModeBtn.addEventListener('click', () => {
+      if (activeMode !== 'planning') {
+        activeMode = 'planning';
+        updateModeUI();
+      }
+    });
+
+    fastModeBtn.addEventListener('click', () => {
+      if (activeMode !== 'fast') {
+        activeMode = 'fast';
+        updateModeUI();
+      }
+    });
+  }
+
   // Fetch list of conversations
   async function loadConversations() {
     try {
@@ -589,7 +621,7 @@ async function initConversationView() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
     try {
-      await window.api.runPrompt(prompt, currentConversationId, activeWorkspace);
+      await window.api.runPrompt(prompt, currentConversationId, activeWorkspace, activeMode);
     } catch (e) {
       stepLogs.innerHTML = `<div class="text-error">Submission failed: ${e.message}</div>`;
       isRunning = false;
