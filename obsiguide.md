@@ -66,7 +66,7 @@
 
 ## Current Goal
 <!-- AGENT-MAINTAINED: update during work -->
-- Integrate custom MCP server configuration from `mcp_config.json` into the Tools view so that both installed plugin extensions (like `stitch`) and custom MCP servers (like `agentmem`) are rendered and managed correctly.
+- Implement deletion/removal of registered workspace folders from the GUI.
 
 ## Current State
 <!-- AGENT-MAINTAINED: update during work -->
@@ -85,6 +85,7 @@
 - **Grouped Tool Call Timelines**: Bundled intermediate tool calls (types 5, 8, 9, 21, 33, 98, 101, 132), responses, thinking logs, and errors inside sleek, collapsible timeline panels.
 - **Improved Preview/Prompt Extraction**: Swapped length-based candidates heuristic in type 14 parsing for the exact protobuf key path `tree[19][0].sub[2][0].string` to prevent file paths or workspace URIs from masking actual user prompts.
 - **MCP Server List Integration**: Added dynamic listing of custom MCP servers from `mcp_config.json` (such as `agentmem`), as the GUI previously only fetched dynamic plugins via `agy plugin list` and ignored custom servers. Added enable/disable toggling, deletion, and addition of custom servers directly from the Tools view.
+- **Implemented Registered Workspace Deletion**: Added removal support for registered workspace paths, enabling users to unregister paths in `projects.json` via GUI with confirmation dialogs.
 
 ## Verified Commands
 <!-- AGENT-MAINTAINED: update during work -->
@@ -108,28 +109,19 @@
 <!-- AGENT-MAINTAINED: update during work -->
 - Created [Antigravity-GUI.md](file:///E:/Vault/02_Projects/Antigravity-GUI.md)
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
-- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to prepend CLI prompt execution with slash commands (/fast or /planning) according to active GUI mode, instead of model flag overrides.
-- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose mode parameter in runPrompt bridge.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to bind planning-mode-btn and fast-mode-btn click listeners and pass activeMode parameter in prompt runs.
-- Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to parse User Prompts via Key 19 path and prioritize tool calls.
-- Updated [settings.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/settings.html) to list only the three verified Gemini 3.5 Flash model variants (High, Medium, Low) supported by the CLI backend.
-- Implemented conversation deletion including unlinking database files (.db, .db-wal, .db-shm) in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), IPC bridge in [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) and [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), and hover delete buttons with select/click handlers in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
-- Fixed Windows file lock issue in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) by wrapping DatabaseSync calls in try-finally to ensure connections are closed, and tracked/terminated active runs in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) before deleting database files.
-- Extracted workspace paths directly from each conversation's SQLite database table trajectory_metadata_blob in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), and implemented workspace-specific conversation list filtering and search in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
-- Added dynamic listing, toggling, addition, and deletion of custom MCP servers from `mcp_config.json` in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js), [tools.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/tools.html), and [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
-- Fixed focus hijacking issue in Electron after native confirm/alert dialogs by forcing focus back to the window and prompt input box in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), and added auto-focus when clicking/loading a conversation.
-- Integrated `electron-builder` packaging and custom branding assets, setting up packaging config and scripts in [package.json](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/package.json), copying the custom app logo to [assets/icon.png](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/assets/icon.png), and successfully building the NSIS setup installer (.exe).
-- Fixed update button text collapse bug by refining selector to query specifically the text `span` instead of the first child icon `span` in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), localizing status text, and reclaiming focus post native alert dialog dismissal.
-- Added `icon` path in `BrowserWindow` constructor configuration in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to display the custom branding icon in the title bar and Windows taskbar at runtime, and rebuilt the installer.
+- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace` handler.
+- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace` API bridge.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, and dynamically update sidebar workspace title.
+- Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title for dynamic updates.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application and verify that the window title bar and taskbar display the custom Antigravity app logo icon instead of the default Electron logo.
+- Start the application (`npm start`) and verify that the "Conversations" sidebar header displays the active workspace folder name (e.g. "Antigravity-GUI") when a workspace is active.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: window-icon-configured
+- status: sidebar-workspace-title-updated
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
