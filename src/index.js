@@ -363,90 +363,197 @@ async function initConversationView() {
       return;
     }
 
-    let html = '';
-    
-    // Group sub-steps by user instruction turn
+    // Group steps into turns
+    const turns = [];
+    let currentTurn = { userPrompt: null, executionSteps: [], agentResponse: null };
+
     steps.forEach(step => {
-      if (step.message) {
-        const isUser = step.message.role === 'user';
-        const roleClass = isUser ? 'bg-surface-container-low border-l-4 border-secondary' : 'bg-surface-container-high/50 border-l-4 border-primary';
-        
-        let roleLabel = isUser 
-          ? (currentLanguage === 'zh' ? '用户指令' : 'User Instruction') 
-          : (currentLanguage === 'zh' ? 'Antigravity 响应' : 'Antigravity Response');
-          
-        if (step.message.isThoughtsOnly && !isUser) {
-          roleLabel = currentLanguage === 'zh' ? '智能体思考' : 'Agent Rationale';
+      const isUser = step.message && step.message.role === 'user';
+      const isAgentResponse = step.message && step.message.role === 'agent' && !step.message.isThoughtsOnly;
+
+      if (isUser) {
+        if (currentTurn.userPrompt || currentTurn.executionSteps.length > 0 || currentTurn.agentResponse) {
+          turns.push(currentTurn);
         }
-        
-        const textFormatted = formatMessageText(step.message.text);
+        currentTurn = { userPrompt: step, executionSteps: [], agentResponse: null };
+      } else if (isAgentResponse) {
+        currentTurn.agentResponse = step;
+        turns.push(currentTurn);
+        currentTurn = { userPrompt: null, executionSteps: [], agentResponse: null };
+      } else {
+        if (step.toolCall || step.toolResponse || (step.message && step.message.isThoughtsOnly) || step.error) {
+          currentTurn.executionSteps.push(step);
+        }
+      }
+    });
+
+    if (currentTurn.userPrompt || currentTurn.executionSteps.length > 0 || currentTurn.agentResponse) {
+      turns.push(currentTurn);
+    }
+
+    let html = '';
+
+    turns.forEach((turn, turnIdx) => {
+      // 1. Render User Prompt
+      if (turn.userPrompt) {
+        const textFormatted = formatMessageText(turn.userPrompt.message.text);
+        html += `
+          <div class="flex justify-end mb-4">
+            <div class="max-w-[85%] bg-primary text-on-primary rounded-2xl rounded-tr-none px-4 py-3 shadow-sm select-text border border-primary/20">
+              <div class="flex items-center gap-2 mb-1.5 opacity-80 font-bold text-[10px] shrink-0">
+                <span class="material-symbols-outlined text-[12px]">person</span>
+                <span>${currentLanguage === 'zh' ? '用户指令' : 'User Instruction'}</span>
+                <span class="ml-auto opacity-60">#${turn.userPrompt.index}</span>
+              </div>
+              <div class="text-[13px] leading-relaxed whitespace-pre-wrap">${textFormatted}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Render Collapsible Execution Steps (Tool Calls and Responses)
+      if (turn.executionSteps && turn.executionSteps.length > 0) {
+        let stepsHtml = '';
+        turn.executionSteps.forEach(step => {
+          if (step.toolCall) {
+            const toolLabel = currentLanguage === 'zh' ? '调用工具' : 'Call Tool';
+            
+            stepsHtml += `
+              <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-outline-variant/60">
+                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full bg-primary border-2 border-background"></div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between shrink-0">
+                    <span class="font-bold text-[12px] text-primary flex items-center gap-1.5 select-all">
+                      <span class="material-symbols-outlined text-[14px]">build</span>
+                      ${toolLabel}: ${escapeHTML(step.toolCall.tool)}
+                    </span>
+                    <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
+                  </div>
+                  ${step.toolCall.explanation ? `<p class="text-[11.5px] text-on-surface-variant italic leading-relaxed select-text">${escapeHTML(step.toolCall.explanation)}</p>` : ''}
+                  <details class="text-[11px] text-on-surface-secondary border border-outline-variant/30 rounded bg-background/50 overflow-hidden">
+                    <summary class="cursor-pointer font-bold select-none p-1.5 hover:bg-surface-variant/30 flex items-center gap-1.5 text-outline">
+                      <span class="material-symbols-outlined text-[12px]">code</span>
+                      ${currentLanguage === 'zh' ? '查看工具参数' : 'View Arguments'}
+                    </summary>
+                    <div class="p-2 border-t border-outline-variant/20 font-code-sm text-code-xs whitespace-pre-wrap select-text leading-relaxed bg-background/80">${escapeHTML(step.toolCall.parameters)}</div>
+                  </details>
+                </div>
+              </div>
+            `;
+          } else if (step.toolResponse) {
+            const resultLabel = currentLanguage === 'zh' ? '工具返回结果' : 'Tool Response';
+            stepsHtml += `
+              <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-outline-variant/60">
+                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-background"></div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between shrink-0">
+                    <span class="font-bold text-[12px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 select-all">
+                      <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                      ${resultLabel}
+                    </span>
+                    <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
+                  </div>
+                  <details class="text-[11px] text-on-surface-secondary border border-outline-variant/30 rounded bg-background/50 overflow-hidden">
+                    <summary class="cursor-pointer font-bold select-none p-1.5 hover:bg-surface-variant/30 flex items-center gap-1.5 text-outline">
+                      <span class="material-symbols-outlined text-[12px]">description</span>
+                      ${currentLanguage === 'zh' ? '展开输出日志' : 'Expand Output Log'}
+                    </summary>
+                    <div class="border-t border-outline-variant/20 bg-background/80 overflow-hidden">
+                      <pre class="p-2 font-code-sm text-code-xs overflow-x-auto select-text max-h-40 leading-relaxed">${escapeHTML(step.toolResponse.content)}</pre>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            `;
+          } else if (step.message && step.message.isThoughtsOnly) {
+            stepsHtml += `
+              <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-outline-variant/60">
+                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full bg-purple-500 border-2 border-background"></div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between shrink-0">
+                    <span class="font-bold text-[12px] text-purple-600 dark:text-purple-400 flex items-center gap-1.5 select-all">
+                      <span class="material-symbols-outlined text-[14px]">psychology</span>
+                      ${currentLanguage === 'zh' ? '智能体思考' : 'Agent Thinking'}
+                    </span>
+                    <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
+                  </div>
+                  <p class="text-[11.5px] text-on-surface-variant whitespace-pre-wrap leading-relaxed select-text font-sans">${escapeHTML(step.message.text)}</p>
+                </div>
+              </div>
+            `;
+          } else if (step.error) {
+            stepsHtml += `
+              <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-outline-variant/60">
+                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full bg-error border-2 border-background"></div>
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between shrink-0">
+                    <span class="font-bold text-[12px] text-error flex items-center gap-1.5 select-all">
+                      <span class="material-symbols-outlined text-[14px]">error</span>
+                      ${currentLanguage === 'zh' ? '步骤执行出错' : 'Error'}
+                    </span>
+                    <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
+                  </div>
+                  <pre class="p-2 bg-error-container/10 border border-error-container/30 rounded font-code-sm text-code-xs text-error overflow-x-auto whitespace-pre-wrap select-text leading-relaxed">${escapeHTML(step.error)}</pre>
+                </div>
+              </div>
+            `;
+          }
+        });
+
+        const collapseTitle = currentLanguage === 'zh' 
+          ? `已执行 ${turn.executionSteps.length} 个后台步骤` 
+          : `${turn.executionSteps.length} background steps executed`;
+
+        html += `
+          <div class="my-4 select-none">
+            <details class="group bg-surface-container-lowest/80 border border-outline-variant/60 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+              <summary class="flex items-center justify-between p-3.5 cursor-pointer hover:bg-surface-container-low transition-colors select-none font-label-md">
+                <div class="flex items-center gap-2.5 text-on-surface">
+                  <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center transition-all group-open:bg-primary/20">
+                    <span class="material-symbols-outlined text-[15px] text-primary">analytics</span>
+                  </div>
+                  <span class="font-bold text-[12.5px] tracking-wide">${collapseTitle}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-outline group-hover:text-primary transition-colors text-[10px]">
+                  <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform duration-200">expand_more</span>
+                </div>
+              </summary>
+              <div class="border-t border-outline-variant/40 p-4 space-y-4 bg-surface-container-lowest select-text max-h-[400px] overflow-y-auto font-sans">
+                ${stepsHtml}
+              </div>
+            </details>
+          </div>
+        `;
+      }
+
+      // 3. Render Agent Final Response
+      if (turn.agentResponse) {
+        const textFormatted = formatMessageText(turn.agentResponse.message.text);
         
         let thoughtsHtml = '';
-        if (step.message.thoughts && !isUser) {
+        if (turn.agentResponse.message.thoughts) {
           thoughtsHtml = `
             <details class="mb-3 text-label-sm text-on-surface-variant bg-surface-container/60 rounded border border-outline-variant/40 p-2.5">
               <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
                 ${currentLanguage === 'zh' ? '查看思考过程' : 'View Thinking Process'}
               </summary>
-              <div class="mt-2 pl-6 whitespace-pre-wrap select-text leading-relaxed font-sans text-on-surface-variant">${escapeHTML(step.message.thoughts)}</div>
+              <div class="mt-2 pl-6 whitespace-pre-wrap select-text leading-relaxed font-sans text-on-surface-variant">${escapeHTML(turn.agentResponse.message.thoughts)}</div>
             </details>
           `;
         }
 
         html += `
-          <div class="p-4 rounded-lg border border-outline-variant space-y-2 ${roleClass}">
-            <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
-              <span class="font-bold text-on-background">${roleLabel}</span>
-              <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
+          <div class="flex justify-start mb-4">
+            <div class="max-w-[85%] bg-surface-container-high/50 border border-outline-variant rounded-2xl rounded-tl-none px-4 py-3 shadow-sm select-text">
+              <div class="flex items-center gap-2 mb-1.5 text-outline font-bold text-[10px] shrink-0">
+                <span class="material-symbols-outlined text-[12px] text-primary">smart_toy</span>
+                <span>${currentLanguage === 'zh' ? 'Antigravity 响应' : 'Antigravity Response'}</span>
+                <span class="ml-auto opacity-60">#${turn.agentResponse.index}</span>
+              </div>
+              ${thoughtsHtml}
+              <div class="text-[13.5px] text-on-surface leading-relaxed select-text">${textFormatted}</div>
             </div>
-            ${thoughtsHtml}
-            <p class="text-body-md text-on-surface select-text leading-relaxed">${textFormatted}</p>
-          </div>
-        `;
-      } else if (step.toolCall) {
-        const toolLabel = currentLanguage === 'zh' ? '工具执行' : 'Tool Execution';
-        const paramsLabel = currentLanguage === 'zh' ? '参数' : 'Parameters';
-        
-        let thoughtsHtml = '';
-        if (step.toolCall.thoughts) {
-          thoughtsHtml = `
-            <details class="mb-2 text-label-sm text-on-surface-variant bg-surface-container/40 rounded border border-outline-variant/30 p-2">
-              <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[14px]">psychology</span>
-                ${currentLanguage === 'zh' ? '思考过程' : 'Thinking Process'}
-              </summary>
-              <div class="mt-2 pl-5 whitespace-pre-wrap select-text leading-relaxed font-sans">${escapeHTML(step.toolCall.thoughts)}</div>
-            </details>
-          `;
-        }
-
-        html += `
-          <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-lowest/80 space-y-2">
-            <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
-              <span class="text-primary font-bold flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">build</span>
-                ${toolLabel}: ${escapeHTML(step.toolCall.tool)}
-              </span>
-              <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
-            </div>
-            ${thoughtsHtml}
-            <div class="font-code-sm text-code-sm text-on-surface-variant bg-background/50 p-2.5 rounded overflow-x-auto select-text border border-outline-variant/30">
-              ${paramsLabel}: ${escapeHTML(step.toolCall.parameters)}
-            </div>
-          </div>
-        `;
-      } else if (step.toolResponse) {
-        const resultLabel = currentLanguage === 'zh' ? '工具执行结果' : 'Tool Output Result';
-        html += `
-          <div class="p-3 rounded-lg border border-outline-variant/60 bg-surface-container/20 space-y-2">
-            <details class="text-label-sm text-on-surface-variant">
-              <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-[16px]">description</span>
-                ${resultLabel} (Step #${step.index})
-              </summary>
-              <pre class="mt-2 bg-background/50 p-2.5 rounded font-code-sm text-code-sm overflow-x-auto select-text max-h-60 leading-relaxed border border-outline-variant/20">${escapeHTML(step.toolResponse.content)}</pre>
-            </details>
           </div>
         `;
       }

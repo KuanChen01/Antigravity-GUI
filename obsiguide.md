@@ -66,7 +66,7 @@
 
 ## Current Goal
 <!-- AGENT-MAINTAINED: update during work -->
-- Assist the user in verifying that conversation list selections and code blocks render correctly without layout breakages.
+- Fix conversation history parsing and rendering to present clean user-agent dialogue threads (similar to Codex and OpenCode GUIs) rather than cluttered step logs.
 
 ## Current State
 <!-- AGENT-MAINTAINED: update during work -->
@@ -80,7 +80,10 @@
 - Identified and fixed an Electron `UtilityProcess` communication bug in `database-worker.js` by swapping legacy `process.on('message')` with the correct `process.parentPort` EventInterface.
 - Initialized a Git repository at `E:\Kuan\Projects\Codex\Antigravity-GUI`, configured `.gitignore`, and made the initial commit of all project files.
 - Added a language choice dropdown to settings and implemented dynamic switching.
-- Identified and fixed an HTML injection layout bug where raw HTML tags in agent step messages or tool parameters were parsed as live DOM elements, breaking sidebar navigation and page headers. Implemented `escapeHTML` and a fenced-code-block markdown renderer. Committed these changes.
+- Fixed HTML Injection UI bug in chat messages, previews, and parameters by escaping tags.
+- **Fixed Conversation History Parsing Bug**: Refactored `database-worker.js` and `index.js` to parse SQLite steps into clean dialogue turns (User prompts and Agent final responses).
+- **Grouped Tool Call Timelines**: Bundled intermediate tool calls (types 5, 8, 9, 21, 33, 98, 101, 132), responses, thinking logs, and errors inside sleek, collapsible timeline panels.
+- **Improved Preview/Prompt Extraction**: Swapped length-based candidates heuristic in type 14 parsing for the exact protobuf key path `tree[19][0].sub[2][0].string` to prevent file paths or workspace URIs from masking actual user prompts.
 
 ## Verified Commands
 <!-- AGENT-MAINTAINED: update during work -->
@@ -89,6 +92,7 @@
 - `agy.exe install` (Registry/path environment helper)
 - `npm run build:css` (Compiled Tailwind v4 output.css from input.css sources)
 - `git init`, `git add .`, `git commit`
+- `node -c database-worker.js`, `node -c src/index.js` (JavaScript syntax check)
 
 ## Known Constraints
 <!-- AGENT-MAINTAINED: update during work -->
@@ -105,24 +109,21 @@
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
 - Created [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js)
 - Created [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js)
-- Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) with parentPort API
-- Created [input.css](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/styles/input.css)
-- Created [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html)
-- Created [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js)
-- Created subviews inside [views/](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/)
-- Created Git repository and submitted the initial commit.
+- Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to parse User Prompts via Key 19 path and prioritize tool calls.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) with turn grouping and collapsible execution step UI timelines.
 - Implemented language selection dropdown (en/zh) and live dynamic DOM translation mechanism.
-- Fixed HTML Injection UI bug in chat messages, previews, and parameters by escaping tags and rendering fenced code blocks inside safe pre elements.
+- Fixed HTML Injection UI bug in chat messages, previews, and parameters by escaping tags.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Restart the Electron app (`npm start`) and click the affected conversation to verify that it loads cleanly without breaking the UI.
+- Run `npm start` to open the GUI application and verify the new dialogue layout on the loaded conversations.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-19
-- status: chat-ui-bug-fixed
+- status: conversation-history-parsed-as-dialogue-turns
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
+
 
 
 

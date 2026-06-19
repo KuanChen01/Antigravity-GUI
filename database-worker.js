@@ -178,11 +178,24 @@ function listConversations() {
         const firstPromptRow = db.prepare("SELECT step_payload FROM steps WHERE step_type = 14 ORDER BY idx ASC LIMIT 1").get();
         if (firstPromptRow && firstPromptRow.step_payload) {
           const tree = parseProto(firstPromptRow.step_payload);
-          const strings = extractAllStrings(tree);
-          const candidates = strings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
-          candidates.sort((a, b) => b.length - a.length);
-          if (candidates.length > 0) {
-            preview = candidates[0].slice(0, 120);
+          let userPrompt = '';
+          const val19 = tree[19] && tree[19][0];
+          if (val19 && val19.sub) {
+            const val2 = val19.sub[2] && val19.sub[2][0];
+            if (val2 && val2.string) {
+              userPrompt = val2.string;
+            }
+          }
+          if (!userPrompt) {
+            const strings = extractAllStrings(tree);
+            const candidates = strings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
+            candidates.sort((a, b) => b.length - a.length);
+            if (candidates.length > 0) {
+              userPrompt = candidates[0];
+            }
+          }
+          if (userPrompt) {
+            preview = userPrompt.slice(0, 120);
           }
         }
       } catch (e) {}
@@ -263,9 +276,19 @@ function getConversationDetails(id) {
         // Structured extraction based on step type
         if (row.step_type === 14) {
           // User input / planning prompt
-          const candidates = step.rawStrings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
-          candidates.sort((a, b) => b.length - a.length);
-          const userPrompt = candidates[0] || '';
+          let userPrompt = '';
+          const val19 = tree[19] && tree[19][0];
+          if (val19 && val19.sub) {
+            const val2 = val19.sub[2] && val19.sub[2][0];
+            if (val2 && val2.string) {
+              userPrompt = val2.string;
+            }
+          }
+          if (!userPrompt) {
+            const candidates = step.rawStrings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
+            candidates.sort((a, b) => b.length - a.length);
+            userPrompt = candidates[0] || '';
+          }
           if (userPrompt) {
             step.message = {
               role: 'user',
@@ -280,13 +303,8 @@ function getConversationDetails(id) {
             const finalResponse = val20.sub[8] && val20.sub[8][0] && val20.sub[8][0].string;
             const toolSub = val20.sub[7] && val20.sub[7][0] && val20.sub[7][0].sub;
             
-            if (finalResponse) {
-              step.message = {
-                role: 'agent',
-                text: finalResponse,
-                thoughts: thoughts || null
-              };
-            } else if (toolSub) {
+            // Prioritize tool calls to prevent intermediate step messages from masking tools
+            if (toolSub) {
               const toolName = toolSub[2] && toolSub[2][0] && toolSub[2][0].string;
               const toolParams = toolSub[3] && toolSub[3][0] && toolSub[3][0].string;
               const botMatch = step.rawStrings.find(s => s.startsWith('bot-'));
@@ -295,6 +313,13 @@ function getConversationDetails(id) {
                 agentId: botMatch || 'Main Agent',
                 tool: toolName || 'unknown_tool',
                 parameters: toolParams || '{}',
+                thoughts: thoughts || null,
+                explanation: finalResponse || null
+              };
+            } else if (finalResponse) {
+              step.message = {
+                role: 'agent',
+                text: finalResponse,
                 thoughts: thoughts || null
               };
             } else if (thoughts) {
@@ -305,8 +330,17 @@ function getConversationDetails(id) {
               };
             }
           }
-        } else if (row.step_type === 9 || row.step_type === 21 || row.step_type === 33 || row.step_type === 132) {
-          // Tool response step (Type 9=list_dir, 21=run_command, 33=search_web, 132=list_permissions)
+        } else if (
+          row.step_type === 5 ||
+          row.step_type === 8 ||
+          row.step_type === 9 ||
+          row.step_type === 21 ||
+          row.step_type === 33 ||
+          row.step_type === 98 ||
+          row.step_type === 101 ||
+          row.step_type === 132
+        ) {
+          // Tool response step (Type 5=write/edit, 8=view_file, 9=list_dir, 21=run_command, 33=search_web, 98=MCP, 101=task, 132=list_permissions)
           let responseText = '';
           if (tree[42] && tree[42][0] && tree[42][0].sub && tree[42][0].sub[5] && tree[42][0].sub[5][0]) {
             responseText = tree[42][0].sub[5][0].string || '';
