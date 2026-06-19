@@ -1245,18 +1245,29 @@ function setupPermissionHandlers() {
 
 // --- GLOBAL UPDATE CHECKER ---
 function setupUpdateChecker() {
+  const textSpan = checkUpdatesBtn.querySelector('span[data-i18n="CHECK_UPDATES"]');
   checkUpdatesBtn.addEventListener('click', async () => {
     checkUpdatesBtn.disabled = true;
-    checkUpdatesBtn.querySelector('span').textContent = 'Checking...';
+    if (textSpan) {
+      textSpan.textContent = currentLanguage === 'zh' ? '正在检查...' : 'Checking...';
+    }
     
     try {
       const res = await window.api.checkForUpdates();
       alert(res.output);
+      window.focus();
+      const promptInput = document.getElementById('prompt-input');
+      if (promptInput) promptInput.focus();
     } catch (e) {
-      alert(`Check updates failed: ${e.message}`);
+      alert(currentLanguage === 'zh' ? `检查更新失败: ${e.message}` : `Check updates failed: ${e.message}`);
+      window.focus();
+      const promptInput = document.getElementById('prompt-input');
+      if (promptInput) promptInput.focus();
     } finally {
       checkUpdatesBtn.disabled = false;
-      checkUpdatesBtn.querySelector('span').textContent = 'Check Updates';
+      if (textSpan) {
+        textSpan.textContent = currentLanguage === 'zh' ? '检查更新' : 'Check Updates';
+      }
     }
   });
 }
