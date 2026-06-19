@@ -368,6 +368,46 @@ function getConversationDetails(id) {
   return details;
 }
 
+// Delete a conversation database file and clear cache references
+function deleteConversation(id) {
+  const cliDir = getCliDir();
+  const convsDir = path.join(cliDir, 'conversations');
+  const dbPath = path.join(convsDir, `${id}.db`);
+  const walPath = path.join(convsDir, `${id}.db-wal`);
+  const shmPath = path.join(convsDir, `${id}.db-shm`);
+  
+  if (fs.existsSync(dbPath)) {
+    fs.unlinkSync(dbPath);
+  }
+  if (fs.existsSync(walPath)) {
+    fs.unlinkSync(walPath);
+  }
+  if (fs.existsSync(shmPath)) {
+    fs.unlinkSync(shmPath);
+  }
+  
+  const lastConversationsPath = path.join(cliDir, 'cache', 'last_conversations.json');
+  try {
+    if (fs.existsSync(lastConversationsPath)) {
+      const lastConversations = JSON.parse(fs.readFileSync(lastConversationsPath, 'utf8'));
+      let modified = false;
+      for (const [wsPath, convId] of Object.entries(lastConversations)) {
+        if (convId === id) {
+          delete lastConversations[wsPath];
+          modified = true;
+        }
+      }
+      if (modified) {
+        fs.writeFileSync(lastConversationsPath, JSON.stringify(lastConversations, null, 2), 'utf8');
+      }
+    }
+  } catch (e) {
+    console.error("Failed to clean up last_conversations cache:", e);
+  }
+  
+  return { success: true };
+}
+
 // Generic handler function for SQLite actions
 function handleMessage(message) {
   const { action, payload, requestId } = message;
@@ -378,6 +418,8 @@ function handleMessage(message) {
       result = listConversations();
     } else if (action === 'get_conversation_details') {
       result = getConversationDetails(payload.id);
+    } else if (action === 'delete_conversation') {
+      result = deleteConversation(payload.id);
     } else {
       throw new Error(`Unknown action: ${action}`);
     }

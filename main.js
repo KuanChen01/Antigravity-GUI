@@ -111,6 +111,10 @@ ipcMain.handle('db:get-conversation-details', async (event, id) => {
   return await queryWorker('get_conversation_details', { id });
 });
 
+ipcMain.handle('db:delete-conversation', async (event, id) => {
+  return await queryWorker('delete_conversation', { id });
+});
+
 // Configurations: Settings & Workspaces
 ipcMain.handle('config:get-settings', async () => {
   const settingsPath = path.join(getCliDir(), 'settings.json');

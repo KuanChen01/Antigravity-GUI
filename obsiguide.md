@@ -112,15 +112,16 @@
 - Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to bind planning-mode-btn and fast-mode-btn click listeners and pass activeMode parameter in prompt runs.
 - Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to parse User Prompts via Key 19 path and prioritize tool calls.
 - Updated [settings.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/settings.html) to list only the three verified Gemini 3.5 Flash model variants (High, Medium, Low) supported by the CLI backend.
+- Implemented conversation deletion including unlinking database files (.db, .db-wal, .db-shm) in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), IPC bridge in [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) and [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), and hover delete buttons with select/click handlers in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Run `npm start` to launch the GUI and test planning/fast mode prompt execution and verified Settings model loading.
+- Run `npm start` to launch the GUI and test selecting and deleting conversations in the list.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-19
-- status: prompt-prefixing-and-model-list-resolved
+- status: conversation-deletion-implemented
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 

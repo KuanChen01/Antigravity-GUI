@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   // Database Worker queries
   getConversations: () => ipcRenderer.invoke('db:list-conversations'),
   getConversationDetails: (id) => ipcRenderer.invoke('db:get-conversation-details', id),
+  deleteConversation: (id) => ipcRenderer.invoke('db:delete-conversation', id),
   
   // Configuration Settings
   getSettings: () => ipcRenderer.invoke('config:get-settings'),

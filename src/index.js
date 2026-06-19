@@ -333,20 +333,29 @@ async function initConversationView() {
       const stepsText = currentLanguage === 'zh' ? `${c.stepsCount} 步` : `${c.stepsCount} steps`;
       
       return `
-        <button data-id="${c.id}" data-ws="${c.workspace}" class="conv-item w-full text-left p-3 rounded transition-colors flex flex-col gap-1 border-b border-outline-variant/30 ${selectClass}">
-          <div class="flex items-center justify-between shrink-0">
-            <span class="font-headline-md font-bold text-on-background truncate max-w-[160px]" style="font-size: 13px;">${displayTitle}</span>
-            <span class="text-[10px] text-outline">${formatDate(c.lastModified)}</span>
+        <div data-id="${c.id}" data-ws="${c.workspace}" class="conv-item w-full text-left p-3 rounded transition-colors flex flex-col gap-1 border-b border-outline-variant/30 group relative cursor-pointer ${selectClass}">
+          <div class="flex items-center justify-between shrink-0 pr-6">
+            <span class="font-headline-md font-bold text-on-background truncate max-w-[150px]" style="font-size: 13px;">${displayTitle}</span>
+            <span class="text-[10px] text-outline group-hover:opacity-0 transition-opacity">${formatDate(c.lastModified)}</span>
           </div>
-          <p class="text-label-sm truncate text-on-surface-variant">${previewText}</p>
+          <p class="text-label-sm truncate text-on-surface-variant pr-6">${previewText}</p>
           <span class="text-[10px] text-primary mt-1 font-code-sm">${stepsText}</span>
-        </button>
+          
+          <!-- Hover Delete Button -->
+          <button data-id="${c.id}" class="delete-conv-btn absolute right-2 top-2 p-1 text-on-surface-variant hover:text-error hover:bg-surface-variant rounded opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center z-10" title="${currentLanguage === 'zh' ? '删除会话' : 'Delete Conversation'}">
+            <span class="material-symbols-outlined text-[16px]">delete</span>
+          </button>
+        </div>
       `;
     }).join('');
 
-    // Attach click listeners
+    // Attach click listeners to conv-item selection
     document.querySelectorAll('.conv-item').forEach(item => {
-      item.addEventListener('click', async () => {
+      item.addEventListener('click', async (e) => {
+        if (e.target.closest('.delete-conv-btn')) {
+          return;
+        }
+        
         const id = item.dataset.id;
         const ws = item.dataset.ws;
         
@@ -359,6 +368,48 @@ async function initConversationView() {
         
         loadConversations(); // refresh highlights
         await loadConversationDetails(id);
+      });
+    });
+
+    // Attach click listeners to delete-conv-btn
+    document.querySelectorAll('.delete-conv-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        
+        const confirmMsg = currentLanguage === 'zh' 
+          ? '确定要永久删除此会话吗？此操作无法撤销。' 
+          : 'Are you sure you want to permanently delete this conversation? This action cannot be undone.';
+        
+        if (confirm(confirmMsg)) {
+          try {
+            const res = await window.api.deleteConversation(id);
+            if (res.success) {
+              if (currentConversationId === id) {
+                currentConversationId = null;
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = `
+                  <div class="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
+                    <div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant">
+                      <span class="material-symbols-outlined text-primary text-[28px]">terminal</span>
+                    </div>
+                    <h2 class="font-headline-md text-headline-md font-bold text-on-background">${currentLanguage === 'zh' ? '欢迎使用 Antigravity CLI' : 'Welcome to Antigravity CLI'}</h2>
+                    <p class="text-on-surface-variant text-body-md">
+                      ${currentLanguage === 'zh' ? '开启新的开发会话或恢复先前的对话。运行任务、浏览代码库、编辑文件并自动化您的工作流。' : 'Start a new development session or resume a previous conversation. Run tasks, explore the codebase, edit files, and automate your workflow.'}
+                    </p>
+                  </div>
+                `;
+                const wsLabel = document.getElementById('current-workspace-label');
+                if (wsLabel) wsLabel.textContent = currentLanguage === 'zh' ? '无活跃会话' : 'No Active Session';
+              }
+              loadConversations();
+            } else {
+              alert(currentLanguage === 'zh' ? `删除失败: ${res.error}` : `Delete failed: ${res.error}`);
+            }
+          } catch (err) {
+            alert(currentLanguage === 'zh' ? `删除出错: ${err.message}` : `Delete error: ${err.message}`);
+          }
+        }
       });
     });
   }
