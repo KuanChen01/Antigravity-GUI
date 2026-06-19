@@ -247,9 +247,6 @@
   .pointer-events-none {
     pointer-events: none;
   }
-  .collapse {
-    visibility: collapse;
-  }
   .visible {
     visibility: visible;
   }
@@ -477,9 +474,6 @@
   .inline-block {
     display: inline-block;
   }
-  .table {
-    display: table;
-  }
   .h-1 {
     height: var(--spacing);
   }
@@ -671,6 +665,9 @@
   }
   .max-w-\[150px\] {
     max-width: 150px;
+  }
+  .max-w-\[200px\] {
+    max-width: 200px;
   }
   .max-w-\[720px\] {
     max-width: 720px;

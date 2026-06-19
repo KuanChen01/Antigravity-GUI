@@ -286,6 +286,7 @@ async function initConversationView() {
   const promptInput = document.getElementById('prompt-input');
   const activeWsLabel = document.getElementById('active-ws-path');
   const currentWsLabel = document.getElementById('current-workspace-label');
+  const sidebarWsTitle = document.getElementById('sidebar-workspace-title');
   const stepProgress = document.getElementById('step-progress-panel');
   const stepLogs = document.getElementById('step-logs');
   const stopAgentBtn = document.getElementById('stop-agent-btn');
@@ -349,9 +350,17 @@ async function initConversationView() {
       if (activeWorkspace) {
         if (activeWsLabel) activeWsLabel.textContent = activeWorkspace;
         if (currentWsLabel) currentWsLabel.textContent = activeWorkspace;
+        if (sidebarWsTitle) {
+          sidebarWsTitle.textContent = pathBasename(activeWorkspace);
+          sidebarWsTitle.title = activeWorkspace;
+        }
       } else {
         if (activeWsLabel) activeWsLabel.textContent = currentLanguage === 'zh' ? '未选择工作区' : 'None';
         if (currentWsLabel) currentWsLabel.textContent = currentLanguage === 'zh' ? '无活跃会话' : 'No Active Session';
+        if (sidebarWsTitle) {
+          sidebarWsTitle.textContent = currentLanguage === 'zh' ? '会话列表' : 'Conversations';
+          sidebarWsTitle.title = currentLanguage === 'zh' ? '会话列表' : 'Conversations';
+        }
       }
       
       // Filter list to only show conversations in the active workspace
