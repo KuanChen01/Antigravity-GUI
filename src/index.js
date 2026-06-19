@@ -545,9 +545,16 @@ async function initConversationView() {
       
       // Auto-set first active workspace if available
       if (allConvs.length > 0 && !activeWorkspace) {
-        const firstWithWs = allConvs.find(c => c.workspace && c.workspace !== 'Unknown Workspace');
+        const firstWithWs = allConvs.find(c => {
+          if (Array.isArray(c.workspaces) && c.workspaces.length > 0) {
+            return c.workspaces.some(ws => ws && ws !== 'Unknown Workspace');
+          }
+          return c.workspace && c.workspace !== 'Unknown Workspace';
+        });
         if (firstWithWs) {
-          activeWorkspace = firstWithWs.workspace;
+          activeWorkspace = Array.isArray(firstWithWs.workspaces) && firstWithWs.workspaces.length > 0
+            ? firstWithWs.workspaces.find(ws => ws && ws !== 'Unknown Workspace')
+            : firstWithWs.workspace;
         }
       }
       
@@ -570,7 +577,12 @@ async function initConversationView() {
       
       // Filter list to only show conversations in the active workspace
       const filtered = activeWorkspace 
-        ? allConvs.filter(c => c.workspace === activeWorkspace)
+        ? allConvs.filter(c => {
+            if (Array.isArray(c.workspaces)) {
+              return c.workspaces.includes(activeWorkspace);
+            }
+            return c.workspace === activeWorkspace;
+          })
         : allConvs;
         
       renderConversationsList(filtered);
@@ -589,12 +601,15 @@ async function initConversationView() {
     convList.innerHTML = list.map(c => {
       const isSelected = c.id === currentConversationId;
       const selectClass = isSelected ? 'bg-surface-variant text-on-surface border-l-2 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high';
-      const displayTitle = escapeHTML(c.workspace && c.workspace !== 'Unknown Workspace' ? pathBasename(c.workspace) : (currentLanguage === 'zh' ? '新会话' : 'New Session'));
+      const itemWs = (Array.isArray(c.workspaces) && c.workspaces.includes(activeWorkspace))
+        ? activeWorkspace
+        : c.workspace;
+      const displayTitle = escapeHTML(itemWs && itemWs !== 'Unknown Workspace' ? pathBasename(itemWs) : (currentLanguage === 'zh' ? '新会话' : 'New Session'));
       const previewText = escapeHTML(c.preview || (currentLanguage === 'zh' ? '暂无对话内容' : 'No prompt content'));
       const stepsText = currentLanguage === 'zh' ? `${c.stepsCount} 步` : `${c.stepsCount} steps`;
       
       return `
-        <div data-id="${c.id}" data-ws="${c.workspace}" class="conv-item w-full text-left p-3 rounded transition-colors flex flex-col gap-1 border-b border-outline-variant/30 group relative cursor-pointer ${selectClass}">
+        <div data-id="${c.id}" data-ws="${itemWs}" class="conv-item w-full text-left p-3 rounded transition-colors flex flex-col gap-1 border-b border-outline-variant/30 group relative cursor-pointer ${selectClass}">
           <div class="flex items-center justify-between shrink-0 pr-6">
             <span class="font-headline-md font-bold text-on-background truncate max-w-[150px]" style="font-size: 13px;">${displayTitle}</span>
             <span class="text-[10px] text-outline group-hover:opacity-0 transition-opacity">${formatDate(c.lastModified)}</span>
@@ -688,7 +703,12 @@ async function initConversationView() {
   convSearch.addEventListener('input', () => {
     const query = convSearch.value.toLowerCase().trim();
     const wsFiltered = activeWorkspace 
-      ? allConvs.filter(c => c.workspace === activeWorkspace)
+      ? allConvs.filter(c => {
+          if (Array.isArray(c.workspaces)) {
+            return c.workspaces.includes(activeWorkspace);
+          }
+          return c.workspace === activeWorkspace;
+        })
       : allConvs;
       
     if (!query) {
@@ -697,6 +717,7 @@ async function initConversationView() {
     }
     const filtered = wsFiltered.filter(c => 
       c.id.toLowerCase().includes(query) || 
+      (c.workspaces && c.workspaces.some(ws => ws.toLowerCase().includes(query))) ||
       c.workspace.toLowerCase().includes(query) || 
       c.preview.toLowerCase().includes(query)
     );

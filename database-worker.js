@@ -126,6 +126,50 @@ function loadMetadata() {
   return { projects, lastConversations };
 }
 
+// Extract all workspace paths from trajectory metadata URI buffer using protobuf parser
+function extractWorkspacePathsFromProto(buffer) {
+  const paths = [];
+  try {
+    const topTree = parseProto(buffer);
+    const field1Nodes = topTree[1];
+    if (Array.isArray(field1Nodes)) {
+      for (const node of field1Nodes) {
+        if (node.sub && node.sub[1]) {
+          const pathNodes = node.sub[1];
+          for (const pathNode of pathNodes) {
+            if (pathNode.string && pathNode.string.startsWith('file://')) {
+              let wsPath = pathNode.string.substring(7);
+              if (wsPath.startsWith('///')) {
+                wsPath = wsPath.substring(3);
+              } else if (wsPath.startsWith('//')) {
+                wsPath = wsPath.substring(2);
+              } else if (wsPath.startsWith('/')) {
+                wsPath = wsPath.substring(1);
+              }
+              if (process.platform === 'win32') {
+                wsPath = wsPath.replace(/\//g, '\\');
+              }
+              try {
+                const decoded = decodeURIComponent(wsPath);
+                if (decoded && !paths.includes(decoded)) {
+                  paths.push(decoded);
+                }
+              } catch (e) {
+                if (wsPath && !paths.includes(wsPath)) {
+                  paths.push(wsPath);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Proto parsing of workspaces failed:", e);
+  }
+  return paths;
+}
+
 // Extract workspace path from trajectory metadata URI buffer
 function extractWorkspacePath(buffer) {
   try {
@@ -176,24 +220,39 @@ function listConversations() {
       
       // Default metadata mapping - extract directly from DB metadata
       let workspace = 'Unknown Workspace';
+      let workspaces = [];
       try {
         const metaRow = db.prepare("SELECT data FROM trajectory_metadata_blob WHERE id = 'main' LIMIT 1").get();
         if (metaRow && metaRow.data) {
-          const parsedWs = extractWorkspacePath(metaRow.data);
-          if (parsedWs) {
-            workspace = parsedWs;
+          workspaces = extractWorkspacePathsFromProto(metaRow.data);
+          if (workspaces.length > 0) {
+            workspace = workspaces[0];
+          } else {
+            const parsedWs = extractWorkspacePath(metaRow.data);
+            if (parsedWs) {
+              workspace = parsedWs;
+              workspaces = [parsedWs];
+            }
           }
         }
       } catch (e) {}
       
       // Fallback to loadMetadata cache
-      if (workspace === 'Unknown Workspace') {
+      if (workspace === 'Unknown Workspace' || workspaces.length === 0) {
         for (const [wsPath, pId] of Object.entries(projects)) {
           if (lastConversations[wsPath] === id) {
             workspace = wsPath;
+            if (!workspaces.includes(wsPath)) {
+              workspaces.push(wsPath);
+            }
             break;
           }
         }
+      }
+      
+      // Ensure workspaces has at least workspace if it is valid
+      if (workspace !== 'Unknown Workspace' && !workspaces.includes(workspace)) {
+        workspaces.push(workspace);
       }
       
       // Get cascade_id (conversation id)
@@ -243,6 +302,7 @@ function listConversations() {
       list.push({
         id: conversationId,
         workspace,
+        workspaces,
         stepsCount,
         preview: preview || 'Empty conversation',
         lastModified: stats.mtimeMs,
@@ -255,6 +315,7 @@ function listConversations() {
       list.push({
         id,
         workspace,
+        workspaces: workspaces.length > 0 ? workspaces : [workspace],
         stepsCount: 0,
         preview: 'Could not load steps (corrupted DB)',
         lastModified: stats.mtimeMs,

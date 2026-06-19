@@ -86,6 +86,7 @@
 - **Improved Preview/Prompt Extraction**: Swapped length-based candidates heuristic in type 14 parsing for the exact protobuf key path `tree[19][0].sub[2][0].string` to prevent file paths or workspace URIs from masking actual user prompts.
 - **MCP Server List Integration**: Added dynamic listing of custom MCP servers from `mcp_config.json` (such as `agentmem`), as the GUI previously only fetched dynamic plugins via `agy plugin list` and ignored custom servers. Added enable/disable toggling, deletion, and addition of custom servers directly from the Tools view.
 - **Implemented Registered Workspace Deletion**: Added removal support for registered workspace paths, enabling users to unregister paths in `projects.json` via GUI with confirmation dialogs.
+- **Fixed Workspace Mapping Bug**: Resolved issue where a conversation initiated in a session with multiple active workspaces would only map to the first workspace. Implemented accurate protobuf parsing of `trajectory_metadata_blob` to extract all active workspaces and filter properly.
 - **Packaged Release Executable**: Successfully compiled Tailwind CSS v4 and packaged the Electron desktop application using `electron-builder`, producing `dist/Antigravity Setup 1.0.0.exe` installer and `dist/win-unpacked/Antigravity.exe` standalone.
 
 ## Verified Commands
@@ -113,7 +114,8 @@
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
 - Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace`, `config:save-image-file`, and `config:delete-image-file` handlers, and decoupled command prefixes to respect explicit slash commands.
 - Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace`, `saveImageFile`, and `deleteImageFile` API bridges.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, and implement clipboard paste and drag-and-drop image uploads with active workspace caching and cleanup.
+- Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to add `extractWorkspacePathsFromProto` and parse multiple workspaces in `listConversations()`.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, implement clipboard paste and drag-and-drop image uploads, and support workspaces array filtering and search.
 - Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, delete the legacy toggle buttons from the top action bar, and add the `#image-preview-container` layout block inside the prompt box.
 - Updated [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html) to replace the uncompiled `px-gutter` in the top navbar header with a standard Tailwind `px-6` utility to resolve layout alignment.
 - Generated installer `dist/Antigravity Setup 1.0.0.exe` and standalone program `dist/win-unpacked/Antigravity.exe` using `npm run dist`.
@@ -125,5 +127,5 @@
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: program-packaged-successfully
+- status: workspaces-array-mapping-bug-fixed
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
