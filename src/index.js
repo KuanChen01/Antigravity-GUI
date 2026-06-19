@@ -42,7 +42,24 @@ const TRANSLATIONS = {
     "SETTINGS_DIAG_SESSION": "Active Session ID:",
     "SETTINGS_VIEW_CHANGELOG": "View Changelog",
     "SETTINGS_RUN_DIAG": "Run Diagnostics",
-    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI Changelog"
+    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI Changelog",
+    "TOOLS_HEADER": "Tools & Plugins",
+    "TOOLS_DESC": "Configure external plugin packages, custom commands, and MCP server transports.",
+    "TOOLS_PLUGINS_TITLE": "Installed Plugin Packages",
+    "TOOLS_INSTALL_TITLE": "Install Custom Plugin / Skill Extension",
+    "TOOLS_INSTALL_DESC": "Provide the repository URL or package name to fetch and configure the extension.",
+    "TOOLS_INSTALL_PLACEHOLDER": "e.g. https://github.com/gemini-cli-extensions/stitch",
+    "TOOLS_INSTALL_BTN": "Install Extension",
+    "TOOLS_MCP_TITLE": "Custom MCP Servers (from mcp_config.json)",
+    "TOOLS_MCP_ADD_TITLE": "Add Custom MCP Server",
+    "TOOLS_MCP_ADD_DESC": "Configure a new Model Context Protocol (MCP) server by specifying its command execution settings.",
+    "TOOLS_MCP_NAME": "Server Name",
+    "TOOLS_MCP_NAME_PLACEHOLDER": "e.g. filesystem",
+    "TOOLS_MCP_COMMAND": "Command",
+    "TOOLS_MCP_COMMAND_PLACEHOLDER": "e.g. node, python, docker",
+    "TOOLS_MCP_ARGS": "Arguments (JSON array or space-separated)",
+    "TOOLS_MCP_ARGS_PLACEHOLDER": 'e.g. ["dist/index.js"] or dist/index.js',
+    "TOOLS_MCP_ADD_BTN": "Add MCP Server"
   },
   zh: {
     "NAV_CONVERSATIONS": "会话列表",
@@ -79,7 +96,24 @@ const TRANSLATIONS = {
     "SETTINGS_DIAG_SESSION": "活动的会话 ID：",
     "SETTINGS_VIEW_CHANGELOG": "查看更新日志",
     "SETTINGS_RUN_DIAG": "运行系统诊断",
-    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI 更新日志"
+    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI 更新日志",
+    "TOOLS_HEADER": "工具与扩展插件",
+    "TOOLS_DESC": "配置外部插件包、自定义命令以及 MCP 服务端传输协议。",
+    "TOOLS_PLUGINS_TITLE": "已安装的插件扩展包 (Plugins)",
+    "TOOLS_INSTALL_TITLE": "安装自定义插件 / Skill 扩展",
+    "TOOLS_INSTALL_DESC": "提供仓库 URL 或包名以获取并配置扩展。",
+    "TOOLS_INSTALL_PLACEHOLDER": "例如：https://github.com/gemini-cli-extensions/stitch",
+    "TOOLS_INSTALL_BTN": "安装扩展包",
+    "TOOLS_MCP_TITLE": "自定义 MCP 服务器 (mcp_config.json)",
+    "TOOLS_MCP_ADD_TITLE": "添加自定义 MCP 服务器",
+    "TOOLS_MCP_ADD_DESC": "通过指定其命令执行参数来配置一个新的模型上下文协议 (MCP) 服务器。",
+    "TOOLS_MCP_NAME": "服务器名称",
+    "TOOLS_MCP_NAME_PLACEHOLDER": "例如：filesystem",
+    "TOOLS_MCP_COMMAND": "执行命令",
+    "TOOLS_MCP_COMMAND_PLACEHOLDER": "例如：node, python, docker",
+    "TOOLS_MCP_ARGS": "执行参数 (JSON 数组或空格分隔)",
+    "TOOLS_MCP_ARGS_PLACEHOLDER": '例如：["dist/index.js"] 或 dist/index.js',
+    "TOOLS_MCP_ADD_BTN": "添加服务器"
   }
 };
 
@@ -825,6 +859,12 @@ async function initToolsView() {
   const installBtn = document.getElementById('plugin-install-btn');
   const installStatus = document.getElementById('plugin-install-status');
 
+  const mcpListContainer = document.getElementById('mcp-servers-list');
+  const mcpNameInput = document.getElementById('mcp-name');
+  const mcpCommandInput = document.getElementById('mcp-command');
+  const mcpArgsInput = document.getElementById('mcp-args');
+  const mcpAddBtn = document.getElementById('mcp-add-btn');
+
   async function loadPlugins() {
     listContainer.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '正在加载插件列表...' : 'Loading plugins...'}</div>`;
     try {
@@ -876,6 +916,100 @@ async function initToolsView() {
     }
   }
 
+  async function loadMcpServers() {
+    mcpListContainer.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '正在加载自定义 MCP 服务...' : 'Loading custom MCP servers...'}</div>`;
+    try {
+      const config = await window.api.getMcpConfig();
+      const servers = config.mcpServers || {};
+      const serverNames = Object.keys(servers);
+      
+      if (serverNames.length === 0) {
+        mcpListContainer.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '未配置任何自定义 MCP 服务。' : 'No custom MCP servers configured.'}</div>`;
+        return;
+      }
+      
+      const disableBtnLabel = currentLanguage === 'zh' ? '禁用' : 'Disable';
+      const enableBtnLabel = currentLanguage === 'zh' ? '启用' : 'Enable';
+      const deleteBtnLabel = currentLanguage === 'zh' ? '删除' : 'Delete';
+      
+      mcpListContainer.innerHTML = serverNames.map(name => {
+        const s = servers[name];
+        const isDisabled = s.disabled === true;
+        const statusText = isDisabled 
+          ? (currentLanguage === 'zh' ? '已禁用' : 'Disabled') 
+          : (currentLanguage === 'zh' ? '已启用' : 'Enabled');
+        const toggleBtnText = isDisabled ? enableBtnLabel : disableBtnLabel;
+        const toggleBtnClass = isDisabled 
+          ? 'px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/40 transition-colors font-label-sm text-label-sm' 
+          : 'px-3 py-1 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/40 transition-colors font-label-sm text-label-sm';
+          
+        return `
+          <div class="py-4 flex items-center justify-between first:pt-0 last:pb-0">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <h4 class="font-headline-md font-bold text-on-background" style="font-size: 14px;">${name}</h4>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${isDisabled ? 'bg-error/10 text-error' : 'bg-emerald-500/10 text-emerald-400'}">${statusText}</span>
+              </div>
+              <p class="text-[11px] text-on-surface-variant font-code-sm">Command: <span class="text-primary">${s.command}</span> • Args: <span class="text-on-surface">${JSON.stringify(s.args || [])}</span></p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button data-name="${name}" data-disabled="${isDisabled}" class="toggle-mcp-btn ${toggleBtnClass}">${toggleBtnText}</button>
+              <button data-name="${name}" class="delete-mcp-btn px-3 py-1 bg-error-container/20 text-error rounded hover:bg-error-container/40 transition-colors font-label-sm text-label-sm">${deleteBtnLabel}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Bind Toggle events
+      document.querySelectorAll('.toggle-mcp-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const name = btn.dataset.name;
+          const currentlyDisabled = btn.dataset.disabled === 'true';
+          const newDisabled = !currentlyDisabled;
+          
+          mcpListContainer.innerHTML = `<div class="text-center py-8 text-outline animate-pulse">${currentLanguage === 'zh' ? '正在保存配置...' : 'Saving config...'}</div>`;
+          
+          const freshConfig = await window.api.getMcpConfig();
+          if (!freshConfig.mcpServers) freshConfig.mcpServers = {};
+          if (freshConfig.mcpServers[name]) {
+            freshConfig.mcpServers[name].disabled = newDisabled;
+            const res = await window.api.saveMcpConfig(freshConfig);
+            if (!res.success) {
+              alert(currentLanguage === 'zh' ? `操作失败：${res.error}` : `Operation failed: ${res.error}`);
+            }
+          }
+          loadMcpServers();
+        });
+      });
+      
+      // Bind Delete events
+      document.querySelectorAll('.delete-mcp-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const name = btn.dataset.name;
+          const confirmMsg = currentLanguage === 'zh' 
+            ? `您确定要删除自定义 MCP 服务 ${name} 吗？` 
+            : `Are you sure you want to delete the custom MCP server ${name}?`;
+            
+          if (confirm(confirmMsg)) {
+            mcpListContainer.innerHTML = `<div class="text-center py-8 text-outline animate-pulse">${currentLanguage === 'zh' ? '正在保存配置...' : 'Saving config...'}</div>`;
+            const freshConfig = await window.api.getMcpConfig();
+            if (freshConfig.mcpServers && freshConfig.mcpServers[name]) {
+              delete freshConfig.mcpServers[name];
+              const res = await window.api.saveMcpConfig(freshConfig);
+              if (!res.success) {
+                alert(currentLanguage === 'zh' ? `删除失败：${res.error}` : `Delete failed: ${res.error}`);
+              }
+            }
+            loadMcpServers();
+          }
+        });
+      });
+      
+    } catch (e) {
+      mcpListContainer.innerHTML = `<div class="p-4 text-error">Failed: ${e.message}</div>`;
+    }
+  }
+
   installBtn.addEventListener('click', async () => {
     const name = installName.value.trim();
     if (!name) return;
@@ -905,7 +1039,58 @@ async function initToolsView() {
     }
   });
 
+  mcpAddBtn.addEventListener('click', async () => {
+    const name = mcpNameInput.value.trim();
+    const command = mcpCommandInput.value.trim();
+    const argsStr = mcpArgsInput.value.trim();
+    
+    if (!name || !command) {
+      alert(currentLanguage === 'zh' ? '请输入服务名称和命令。' : 'Please provide both server name and command.');
+      return;
+    }
+    
+    let args = [];
+    if (argsStr) {
+      try {
+        if (argsStr.startsWith('[') && argsStr.endsWith(']')) {
+          args = JSON.parse(argsStr);
+        } else {
+          args = argsStr.split(/\s+/).filter(Boolean);
+        }
+      } catch (e) {
+        args = argsStr.split(/\s+/).filter(Boolean);
+      }
+    }
+    
+    mcpAddBtn.disabled = true;
+    try {
+      const freshConfig = await window.api.getMcpConfig();
+      if (!freshConfig.mcpServers) freshConfig.mcpServers = {};
+      
+      freshConfig.mcpServers[name] = {
+        command,
+        args,
+        disabled: false
+      };
+      
+      const res = await window.api.saveMcpConfig(freshConfig);
+      if (res.success) {
+        mcpNameInput.value = '';
+        mcpCommandInput.value = '';
+        mcpArgsInput.value = '';
+        loadMcpServers();
+      } else {
+        alert(currentLanguage === 'zh' ? `添加失败：${res.error}` : `Failed to add: ${res.error}`);
+      }
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      mcpAddBtn.disabled = false;
+    }
+  });
+
   loadPlugins();
+  loadMcpServers();
 }
 
 // --- SETTINGS VIEW CONTROLLER ---

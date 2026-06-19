@@ -175,6 +175,29 @@ ipcMain.handle('config:add-workspace', async (event, wsPath) => {
   });
 });
 
+ipcMain.handle('config:get-mcp-config', async () => {
+  const mcpConfigPath = path.join(getCliDir(), 'mcp_config.json');
+  try {
+    if (fs.existsSync(mcpConfigPath)) {
+      return JSON.parse(fs.readFileSync(mcpConfigPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error("Failed to read mcp_config.json:", e);
+  }
+  return { mcpServers: {} };
+});
+
+ipcMain.handle('config:save-mcp-config', async (event, config) => {
+  const mcpConfigPath = path.join(getCliDir(), 'mcp_config.json');
+  try {
+    fs.writeFileSync(mcpConfigPath, JSON.stringify(config, null, 2), 'utf-8');
+    return { success: true };
+  } catch (e) {
+    console.error("Failed to write mcp_config.json:", e);
+    return { success: false, error: e.message };
+  }
+});
+
 // Dialog directory selection
 ipcMain.handle('dialog:select-directory', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {

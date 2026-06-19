@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('api', {
   installPlugin: (name) => ipcRenderer.invoke('plugins:install', name),
   uninstallPlugin: (name) => ipcRenderer.invoke('plugins:uninstall', name),
   
+  // MCP Config Management
+  getMcpConfig: () => ipcRenderer.invoke('config:get-mcp-config'),
+  saveMcpConfig: (config) => ipcRenderer.invoke('config:save-mcp-config', config),
+  
   // Streaming listeners
   onAgyOutput: (callback) => {
     const subscription = (event, data) => callback(data);

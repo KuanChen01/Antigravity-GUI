@@ -1,26 +1,59 @@
 <div class="p-8 space-y-6 h-full overflow-y-auto bg-background">
   <div class="border-b border-outline-variant pb-4">
-    <h2 class="font-headline-lg text-headline-lg font-bold text-on-background">Tools & Plugins</h2>
-    <p class="text-on-surface-variant text-body-md mt-1">Configure external plugin packages, custom commands, and MCP server transports.</p>
+    <h2 data-i18n="TOOLS_HEADER" class="font-headline-lg text-headline-lg font-bold text-on-background">Tools & Plugins</h2>
+    <p data-i18n="TOOLS_DESC" class="text-on-surface-variant text-body-md mt-1">Configure external plugin packages, custom commands, and MCP server transports.</p>
   </div>
 
   <!-- Plugins List Card -->
   <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
-    <h3 class="font-headline-md font-bold text-primary" style="font-size: 16px;">Installed Plugin Packages</h3>
+    <h3 data-i18n="TOOLS_PLUGINS_TITLE" class="font-headline-md font-bold text-primary" style="font-size: 16px;">Installed Plugin Packages</h3>
     
     <div class="divide-y divide-outline-variant/40" id="plugins-list">
       <div class="text-center py-8 text-on-surface-variant text-label-sm">Loading installed plugins...</div>
     </div>
   </div>
 
+  <!-- Custom MCP Servers Card -->
+  <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
+    <h3 data-i18n="TOOLS_MCP_TITLE" class="font-headline-md font-bold text-primary" style="font-size: 16px;">Custom MCP Servers</h3>
+    
+    <div class="divide-y divide-outline-variant/40" id="mcp-servers-list">
+      <div class="text-center py-8 text-on-surface-variant text-label-sm">Loading custom MCP servers...</div>
+    </div>
+  </div>
+
+  <!-- Add Custom MCP Server Section -->
+  <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
+    <h3 data-i18n="TOOLS_MCP_ADD_TITLE" class="font-headline-md font-bold text-on-background" style="font-size: 16px;">Add Custom MCP Server</h3>
+    <p data-i18n="TOOLS_MCP_ADD_DESC" class="text-on-surface-variant text-body-md">Configure a new Model Context Protocol (MCP) server by specifying its command execution settings.</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="space-y-1">
+        <label data-i18n="TOOLS_MCP_NAME" class="text-label-sm text-on-surface-variant" for="mcp-name">Server Name</label>
+        <input type="text" id="mcp-name" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background" placeholder="e.g. filesystem" data-i18n-placeholder="TOOLS_MCP_NAME_PLACEHOLDER"/>
+      </div>
+      <div class="space-y-1">
+        <label data-i18n="TOOLS_MCP_COMMAND" class="text-label-sm text-on-surface-variant" for="mcp-command">Command</label>
+        <input type="text" id="mcp-command" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background" placeholder="e.g. node, python, docker" data-i18n-placeholder="TOOLS_MCP_COMMAND_PLACEHOLDER"/>
+      </div>
+      <div class="space-y-1">
+        <label data-i18n="TOOLS_MCP_ARGS" class="text-label-sm text-on-surface-variant" for="mcp-args">Arguments (JSON array or space-separated)</label>
+        <input type="text" id="mcp-args" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background" placeholder='e.g. ["dist/index.js"] or dist/index.js' data-i18n-placeholder="TOOLS_MCP_ARGS_PLACEHOLDER"/>
+      </div>
+    </div>
+    <div class="flex justify-end pt-2">
+      <button id="mcp-add-btn" data-i18n="TOOLS_MCP_ADD_BTN" class="px-6 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm">Add MCP Server</button>
+    </div>
+  </div>
+
   <!-- Install Plugin Section -->
   <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
-    <h3 class="font-headline-md font-bold text-on-background" style="font-size: 16px;">Install Custom Plugin / Skill Extension</h3>
-    <p class="text-on-surface-variant text-body-md">Provide the repository URL or package name to fetch and configure the extension.</p>
+    <h3 data-i18n="TOOLS_INSTALL_TITLE" class="font-headline-md font-bold text-on-background" style="font-size: 16px;">Install Custom Plugin / Skill Extension</h3>
+    <p data-i18n="TOOLS_INSTALL_DESC" class="text-on-surface-variant text-body-md">Provide the repository URL or package name to fetch and configure the extension.</p>
     
     <div class="flex gap-3">
-      <input type="text" id="plugin-install-name" class="flex-1 bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background" placeholder="e.g. https://github.com/gemini-cli-extensions/stitch"/>
-      <button id="plugin-install-btn" class="px-6 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm shrink-0">Install Extension</button>
+      <input type="text" id="plugin-install-name" class="flex-1 bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background" placeholder="e.g. https://github.com/gemini-cli-extensions/stitch" data-i18n-placeholder="TOOLS_INSTALL_PLACEHOLDER"/>
+      <button id="plugin-install-btn" data-i18n="TOOLS_INSTALL_BTN" class="px-6 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm shrink-0">Install Extension</button>
     </div>
     
     <div id="plugin-install-status" class="font-code-sm text-code-sm text-on-surface-variant max-h-40 overflow-y-auto p-3 bg-surface-container-lowest rounded hidden">
