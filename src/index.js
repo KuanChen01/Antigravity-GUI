@@ -302,7 +302,6 @@ async function initConversationView() {
   async function loadConversations() {
     try {
       allConvs = await window.api.getConversations();
-      renderConversationsList(allConvs);
       
       // Auto-set first active workspace if available
       if (allConvs.length > 0 && !activeWorkspace) {
@@ -313,6 +312,13 @@ async function initConversationView() {
           currentWsLabel.textContent = activeWorkspace;
         }
       }
+      
+      // Filter list to only show conversations in the active workspace
+      const filtered = activeWorkspace 
+        ? allConvs.filter(c => c.workspace === activeWorkspace)
+        : allConvs;
+        
+      renderConversationsList(filtered);
       updateInputState();
     } catch (e) {
       convList.innerHTML = `<div class="p-4 text-error">Load failed: ${e.message}</div>`;
@@ -417,11 +423,15 @@ async function initConversationView() {
   // Filter conversations
   convSearch.addEventListener('input', () => {
     const query = convSearch.value.toLowerCase().trim();
+    const wsFiltered = activeWorkspace 
+      ? allConvs.filter(c => c.workspace === activeWorkspace)
+      : allConvs;
+      
     if (!query) {
-      renderConversationsList(allConvs);
+      renderConversationsList(wsFiltered);
       return;
     }
-    const filtered = allConvs.filter(c => 
+    const filtered = wsFiltered.filter(c => 
       c.id.toLowerCase().includes(query) || 
       c.workspace.toLowerCase().includes(query) || 
       c.preview.toLowerCase().includes(query)

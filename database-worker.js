@@ -126,6 +126,32 @@ function loadMetadata() {
   return { projects, lastConversations };
 }
 
+// Extract workspace path from trajectory metadata URI buffer
+function extractWorkspacePath(buffer) {
+  try {
+    const textDecoder = new TextDecoder('utf-8');
+    const str = textDecoder.decode(buffer);
+    const match = str.match(/file:\/\/([^\u0000-\u001f\s"]+)/);
+    if (match) {
+      let wsPath = match[1];
+      if (wsPath.startsWith('///')) {
+        wsPath = wsPath.substring(3);
+      } else if (wsPath.startsWith('//')) {
+        wsPath = wsPath.substring(2);
+      } else if (wsPath.startsWith('/')) {
+        wsPath = wsPath.substring(1);
+      }
+      if (process.platform === 'win32') {
+        wsPath = wsPath.replace(/\//g, '\\');
+      }
+      return decodeURIComponent(wsPath);
+    }
+  } catch (e) {
+    console.error("Decode workspace URI failed:", e);
+  }
+  return null;
+}
+
 // List all local conversations
 function listConversations() {
   const cliDir = getCliDir();
@@ -144,18 +170,31 @@ function listConversations() {
     const id = path.basename(file, '.db');
     const stats = fs.statSync(filePath);
     
-    // Default metadata mapping
-    let workspace = 'Unknown Workspace';
-    for (const [wsPath, pId] of Object.entries(projects)) {
-      if (lastConversations[wsPath] === id) {
-        workspace = wsPath;
-        break;
-      }
-    }
-    
     let db = null;
     try {
       db = new DatabaseSync(filePath, { readOnly: true });
+      
+      // Default metadata mapping - extract directly from DB metadata
+      let workspace = 'Unknown Workspace';
+      try {
+        const metaRow = db.prepare("SELECT data FROM trajectory_metadata_blob WHERE id = 'main' LIMIT 1").get();
+        if (metaRow && metaRow.data) {
+          const parsedWs = extractWorkspacePath(metaRow.data);
+          if (parsedWs) {
+            workspace = parsedWs;
+          }
+        }
+      } catch (e) {}
+      
+      // Fallback to loadMetadata cache
+      if (workspace === 'Unknown Workspace') {
+        for (const [wsPath, pId] of Object.entries(projects)) {
+          if (lastConversations[wsPath] === id) {
+            workspace = wsPath;
+            break;
+          }
+        }
+      }
       
       // Get cascade_id (conversation id)
       let conversationId = id;
