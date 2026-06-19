@@ -3,6 +3,102 @@ let currentView = null;
 let activeWorkspace = null;
 let currentConversationId = null;
 let isRunning = false;
+let currentLanguage = 'en';
+
+// Translations Dictionary
+const TRANSLATIONS = {
+  en: {
+    "NAV_CONVERSATIONS": "Conversations",
+    "NAV_WORKSPACES": "Workspaces",
+    "NAV_AGENTS": "Agents",
+    "NAV_CHANGES": "Changes",
+    "NAV_TOOLS": "Tools",
+    "NAV_SETTINGS": "Settings",
+    "CHECK_UPDATES": "Check Updates",
+    "TITLE_CONTROL_CENTER": "Control Center",
+    "PERM_TITLE": "Tool Execution Permission Required",
+    "PERM_DESC": "An agent is attempting to execute a tool. Please review and approve this action.",
+    "PERM_DENY": "Deny",
+    "PERM_APPROVE": "Approve",
+    "SETTINGS_HEADER": "Settings",
+    "SETTINGS_DESC": "Configure global and session parameters for the Antigravity CLI agent.",
+    "SETTINGS_CONF_TITLE": "General Configuration",
+    "SETTINGS_MODEL": "Default Agent Model",
+    "SETTINGS_EDITOR": "Default Text Editor",
+    "SETTINGS_PERMISSIONS": "Tool Permission Policy",
+    "SETTINGS_PERMISSIONS_ALWAYS": "Always Proceed (Auto-Approve All Tools)",
+    "SETTINGS_PERMISSIONS_SANDBOX": "Proceed in Sandbox (Confirm only unsandboxed commands)",
+    "SETTINGS_PERMISSIONS_ASK": "Ask for Confirmation (Prompt for all operations)",
+    "SETTINGS_ARTIFACTS": "Artifact Review Policy",
+    "SETTINGS_ARTIFACTS_ALWAYS": "Always Proceed (Auto-Save Artifacts)",
+    "SETTINGS_ARTIFACTS_ASK": "Ask for Confirmation (Prompt before saving changes)",
+    "SETTINGS_LANGUAGE": "Interface Language / 界面语言",
+    "SETTINGS_SAVE_BTN": "Save Configurations",
+    "SETTINGS_SAVE_SUCCESS": "Settings saved successfully!",
+    "SETTINGS_DIAG_TITLE": "App Version & Connection Diagnostics",
+    "SETTINGS_DIAG_BIN": "Executable Path:",
+    "SETTINGS_DIAG_DIR": "CLI Configuration Dir:",
+    "SETTINGS_DIAG_LS": "Active Language Server:",
+    "SETTINGS_DIAG_SESSION": "Active Session ID:",
+    "SETTINGS_VIEW_CHANGELOG": "View Changelog",
+    "SETTINGS_RUN_DIAG": "Run Diagnostics",
+    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI Changelog"
+  },
+  zh: {
+    "NAV_CONVERSATIONS": "会话列表",
+    "NAV_WORKSPACES": "工作区",
+    "NAV_AGENTS": "智能体",
+    "NAV_CHANGES": "代码变更",
+    "NAV_TOOLS": "工具插件",
+    "NAV_SETTINGS": "常规设置",
+    "CHECK_UPDATES": "检查更新",
+    "TITLE_CONTROL_CENTER": "控制中心",
+    "PERM_TITLE": "工具执行权限确认",
+    "PERM_DESC": "智能体正尝试执行一个工具，请确认是否批准该操作。",
+    "PERM_DENY": "拒绝",
+    "PERM_APPROVE": "批准",
+    "SETTINGS_HEADER": "系统设置",
+    "SETTINGS_DESC": "配置 Antigravity CLI 智能体的全局参数与会话策略。",
+    "SETTINGS_CONF_TITLE": "常规配置项目",
+    "SETTINGS_MODEL": "默认智能体模型 (Model)",
+    "SETTINGS_EDITOR": "默认文本编辑器",
+    "SETTINGS_PERMISSIONS": "工具执行审批策略",
+    "SETTINGS_PERMISSIONS_ALWAYS": "始终执行 (自动批准所有工具)",
+    "SETTINGS_PERMISSIONS_SANDBOX": "仅在沙箱外确认 (非沙箱命令弹出确认)",
+    "SETTINGS_PERMISSIONS_ASK": "每次询问 (所有操作均需确认)",
+    "SETTINGS_ARTIFACTS": "Artifact 评审策略",
+    "SETTINGS_ARTIFACTS_ALWAYS": "始终执行 (自动保存变更)",
+    "SETTINGS_ARTIFACTS_ASK": "询问确认 (保存变更前提示)",
+    "SETTINGS_LANGUAGE": "界面语言 / Language",
+    "SETTINGS_SAVE_BTN": "保存配置信息",
+    "SETTINGS_SAVE_SUCCESS": "设置已成功保存！",
+    "SETTINGS_DIAG_TITLE": "版本信息与连接状态诊断",
+    "SETTINGS_DIAG_BIN": "可执行程序路径：",
+    "SETTINGS_DIAG_DIR": "CLI 配置文件目录：",
+    "SETTINGS_DIAG_LS": "活动的语言服务器：",
+    "SETTINGS_DIAG_SESSION": "活动的会话 ID：",
+    "SETTINGS_VIEW_CHANGELOG": "查看更新日志",
+    "SETTINGS_RUN_DIAG": "运行系统诊断",
+    "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI 更新日志"
+  }
+};
+
+// Translate DOM elements based on data-i18n attributes
+function translateDOM(container = document) {
+  container.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) {
+      el.textContent = TRANSLATIONS[currentLanguage][key];
+    }
+  });
+  
+  container.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) {
+      el.placeholder = TRANSLATIONS[currentLanguage][key];
+    }
+  });
+}
 
 // DOM Cache
 const mainContent = document.getElementById('view-container');
@@ -19,6 +115,15 @@ const denyPermissionBtn = document.getElementById('deny-permission-btn');
 
 // Initialize App
 async function init() {
+  // Load settings first to obtain default language preference
+  try {
+    const settings = await window.api.getSettings();
+    currentLanguage = settings.language || 'en';
+  } catch (e) {
+    console.error("Failed to load initial settings language:", e);
+  }
+
+  translateDOM(document);
   setupNavigation();
   setupPermissionHandlers();
   setupUpdateChecker();
@@ -26,7 +131,12 @@ async function init() {
   // Set active connections
   connectionDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
   connectionDot.title = 'Connected';
-  authStatusLabel.textContent = 'Pro Plan • Connected';
+  authStatusLabel.textContent = currentLanguage === 'zh' ? '专业版 • 已连接' : 'Pro Plan • Connected';
+  
+  const userPlanLabel = document.getElementById('user-plan-label');
+  if (userPlanLabel) {
+    userPlanLabel.textContent = currentLanguage === 'zh' ? '开发者' : 'Developer';
+  }
   
   // Load default view
   await navigateTo('conversation');
@@ -68,16 +178,19 @@ async function navigateTo(viewName) {
     mainContent.innerHTML = html;
     currentView = viewName;
     
-    // Set view title
+    // Translate newly loaded view elements
+    translateDOM(mainContent);
+    
+    // Set view title with translation fallback
     const titles = {
-      conversation: 'Conversations Workspace',
-      workspace_home: 'Registered Workspaces',
-      subagents: 'Subagents Monitor',
-      changes: 'VCS File Changes',
-      tools: 'Tools & Extension Packages',
-      settings: 'General Settings'
+      conversation: currentLanguage === 'zh' ? '会话控制台' : 'Conversations Workspace',
+      workspace_home: currentLanguage === 'zh' ? '已注册工作区' : 'Registered Workspaces',
+      subagents: currentLanguage === 'zh' ? '智能体监控' : 'Subagents Monitor',
+      changes: currentLanguage === 'zh' ? 'VCS 代码变更' : 'VCS File Changes',
+      tools: currentLanguage === 'zh' ? '工具与扩展插件' : 'Tools & Extension Packages',
+      settings: currentLanguage === 'zh' ? '常规系统设置' : 'General Settings'
     };
-    viewTitle.textContent = titles[viewName] || 'Control Center';
+    viewTitle.textContent = titles[viewName] || (currentLanguage === 'zh' ? '控制中心' : 'Control Center');
     
     // Initialize view controller
     if (viewName === 'conversation') initConversationView();
@@ -135,22 +248,25 @@ async function initConversationView() {
 
   function renderConversationsList(list) {
     if (list.length === 0) {
-      convList.innerHTML = '<div class="text-center py-8 text-on-surface-variant text-label-sm">No conversations found</div>';
+      convList.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '未找到相关会话' : 'No conversations found'}</div>`;
       return;
     }
 
     convList.innerHTML = list.map(c => {
       const isSelected = c.id === currentConversationId;
       const selectClass = isSelected ? 'bg-surface-variant text-on-surface border-l-2 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high';
+      const displayTitle = c.workspace && c.workspace !== 'Unknown Workspace' ? pathBasename(c.workspace) : (currentLanguage === 'zh' ? '新会话' : 'New Session');
+      const previewText = c.preview || (currentLanguage === 'zh' ? '暂无对话内容' : 'No prompt content');
+      const stepsText = currentLanguage === 'zh' ? `${c.stepsCount} 步` : `${c.stepsCount} steps`;
       
       return `
         <button data-id="${c.id}" data-ws="${c.workspace}" class="conv-item w-full text-left p-3 rounded transition-colors flex flex-col gap-1 border-b border-outline-variant/30 ${selectClass}">
           <div class="flex items-center justify-between shrink-0">
-            <span class="font-headline-md font-bold text-on-background truncate max-w-[160px]" style="font-size: 13px;">${c.workspace !== 'Unknown Workspace' ? pathBasename(c.workspace) : 'New Session'}</span>
+            <span class="font-headline-md font-bold text-on-background truncate max-w-[160px]" style="font-size: 13px;">${displayTitle}</span>
             <span class="text-[10px] text-outline">${formatDate(c.lastModified)}</span>
           </div>
-          <p class="text-label-sm truncate text-on-surface-variant">${c.preview || 'No prompt content'}</p>
-          <span class="text-[10px] text-primary mt-1 font-code-sm">${c.stepsCount} steps</span>
+          <p class="text-label-sm truncate text-on-surface-variant">${previewText}</p>
+          <span class="text-[10px] text-primary mt-1 font-code-sm">${stepsText}</span>
         </button>
       `;
     }).join('');
@@ -202,7 +318,7 @@ async function initConversationView() {
 
   function renderMessages(steps) {
     if (steps.length === 0) {
-      chatMessages.innerHTML = '<div class="text-center py-12 text-on-surface-variant">Empty session</div>';
+      chatMessages.innerHTML = `<div class="text-center py-12 text-on-surface-variant">${currentLanguage === 'zh' ? '暂无历史步骤' : 'Empty session'}</div>`;
       return;
     }
 
@@ -213,30 +329,35 @@ async function initConversationView() {
       if (step.message) {
         const isUser = step.message.role === 'user';
         const roleClass = isUser ? 'bg-surface-container-low border-l-4 border-secondary' : 'bg-surface-container-high/50 border-l-4 border-primary';
-        const roleLabel = isUser ? 'User Instruction' : 'Antigravity Response';
+        const roleLabel = isUser 
+          ? (currentLanguage === 'zh' ? '用户指令' : 'User Instruction') 
+          : (currentLanguage === 'zh' ? 'Antigravity 响应' : 'Antigravity Response');
         const textFormatted = step.message.text.replace(/\n/g, '<br/>');
         
         html += `
           <div class="p-4 rounded-lg border border-outline-variant space-y-2 ${roleClass}">
             <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
               <span class="font-bold text-on-background">${roleLabel}</span>
-              <span class="text-outline">Step #${step.index}</span>
+              <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
             </div>
             <p class="text-body-md text-on-surface select-text">${textFormatted}</p>
           </div>
         `;
       } else if (step.toolCall) {
+        const toolLabel = currentLanguage === 'zh' ? '工具执行' : 'Tool Execution';
+        const paramsLabel = currentLanguage === 'zh' ? '参数' : 'Parameters';
+        
         html += `
           <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-lowest/80 space-y-2">
             <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
               <span class="text-primary font-bold flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px]">build</span>
-                Tool Execution: ${step.toolCall.tool}
+                ${toolLabel}: ${step.toolCall.tool}
               </span>
-              <span class="text-outline">Step #${step.index}</span>
+              <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
             </div>
             <div class="font-code-sm text-code-sm text-on-surface-variant bg-background/50 p-2.5 rounded overflow-x-auto select-text">
-              Parameters: ${step.toolCall.parameters}
+              ${paramsLabel}: ${step.toolCall.parameters}
             </div>
           </div>
         `;
@@ -322,9 +443,9 @@ async function initConversationView() {
         <div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant">
           <span class="material-symbols-outlined text-primary text-[28px]">terminal</span>
         </div>
-        <h2 class="font-headline-md text-headline-md font-bold text-on-background">New Session Ready</h2>
+        <h2 class="font-headline-md text-headline-md font-bold text-on-background">${currentLanguage === 'zh' ? '新会话已就绪' : 'New Session Ready'}</h2>
         <p class="text-on-surface-variant text-body-md">
-          Type your instruction below to start a new conversation. A fresh conversation session database will be created automatically.
+          ${currentLanguage === 'zh' ? '在下方输入您的指令以启动新会话。系统将自动创建一个全新的会话数据库。' : 'Type your instruction below to start a new conversation. A fresh conversation session database will be created automatically.'}
         </p>
       </div>
     `;
@@ -353,15 +474,19 @@ async function initWorkspaceView() {
     try {
       const paths = await window.api.getWorkspaces();
       if (paths.length === 0) {
+        const emptyMsg = currentLanguage === 'zh' 
+          ? '未找到已注册工作区。点击 "添加工作目录" 注册新文件夹。' 
+          : 'No workspaces found. Click "Add Directory" to register a folder.';
         cardsContainer.innerHTML = `
           <div class="col-span-2 text-center py-12 border border-dashed border-outline rounded-lg bg-surface-container/20">
             <span class="material-symbols-outlined text-outline text-[40px] mb-2">folder_open</span>
-            <p class="text-on-surface-variant text-body-md">No workspaces found. Click "Add Directory" to register a folder.</p>
+            <p class="text-on-surface-variant text-body-md">${emptyMsg}</p>
           </div>
         `;
         return;
       }
       
+      const selectBtnLabel = currentLanguage === 'zh' ? '选择' : 'Select';
       cardsContainer.innerHTML = paths.map(p => `
         <div class="bg-surface-container border border-outline-variant p-4 rounded-lg flex items-center justify-between hover:border-primary transition-colors">
           <div class="flex items-center gap-3 min-w-0">
@@ -371,7 +496,7 @@ async function initWorkspaceView() {
               <p class="text-[11px] text-on-surface-variant font-code-sm truncate max-w-sm">${p}</p>
             </div>
           </div>
-          <button data-path="${p}" class="select-ws-btn px-3 py-1 bg-surface-variant text-on-surface-variant rounded hover:bg-surface-container-high transition-colors font-label-sm text-label-sm shrink-0">Select</button>
+          <button data-path="${p}" class="select-ws-btn px-3 py-1 bg-surface-variant text-on-surface-variant rounded hover:bg-surface-container-high transition-colors font-label-sm text-label-sm shrink-0">${selectBtnLabel}</button>
         </div>
       `).join('');
       
@@ -413,7 +538,7 @@ async function initToolsView() {
   const installStatus = document.getElementById('plugin-install-status');
 
   async function loadPlugins() {
-    listContainer.innerHTML = '<div class="text-center py-8 text-on-surface-variant text-label-sm">Loading plugins...</div>';
+    listContainer.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '正在加载插件列表...' : 'Loading plugins...'}</div>`;
     try {
       const data = await window.api.getPlugins();
       if (data.error) {
@@ -423,17 +548,18 @@ async function initToolsView() {
       
       const imports = data.imports || [];
       if (imports.length === 0) {
-        listContainer.innerHTML = '<div class="text-center py-8 text-on-surface-variant text-label-sm">No plugins installed.</div>';
+        listContainer.innerHTML = `<div class="text-center py-8 text-on-surface-variant text-label-sm">${currentLanguage === 'zh' ? '未安装任何插件扩展。' : 'No plugins installed.'}</div>`;
         return;
       }
       
+      const uninstallBtnLabel = currentLanguage === 'zh' ? '卸载' : 'Uninstall';
       listContainer.innerHTML = imports.map(p => `
         <div class="py-4 flex items-center justify-between first:pt-0 last:pb-0">
           <div class="space-y-1">
             <h4 class="font-headline-md font-bold text-on-background" style="font-size: 14px;">${p.name}</h4>
             <p class="text-[11px] text-on-surface-variant font-code-sm">Source: ${p.source} • Components: ${p.components ? p.components.join(', ') : 'none'}</p>
           </div>
-          <button data-name="${p.name}" class="uninstall-plugin-btn px-3 py-1 bg-error-container/20 text-error rounded hover:bg-error-container/40 transition-colors font-label-sm text-label-sm">Uninstall</button>
+          <button data-name="${p.name}" class="uninstall-plugin-btn px-3 py-1 bg-error-container/20 text-error rounded hover:bg-error-container/40 transition-colors font-label-sm text-label-sm">${uninstallBtnLabel}</button>
         </div>
       `).join('');
       
@@ -441,13 +567,17 @@ async function initToolsView() {
       document.querySelectorAll('.uninstall-plugin-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const name = btn.dataset.name;
-          if (confirm(`Are you sure you want to uninstall ${name}?`)) {
-            listContainer.innerHTML = '<div class="text-center py-8 text-outline animate-pulse">Uninstalling...</div>';
+          const confirmMsg = currentLanguage === 'zh' 
+            ? `您确定要卸载 ${name} 吗？` 
+            : `Are you sure you want to uninstall ${name}?`;
+          if (confirm(confirmMsg)) {
+            listContainer.innerHTML = `<div class="text-center py-8 text-outline animate-pulse">${currentLanguage === 'zh' ? '正在卸载...' : 'Uninstalling...'}</div>`;
             const res = await window.api.uninstallPlugin(name);
             if (res.success) {
               loadPlugins();
             } else {
-              alert(`Uninstall failed:\n${res.output}`);
+              const failMsg = currentLanguage === 'zh' ? `卸载失败：\n${res.output}` : `Uninstall failed:\n${res.output}`;
+              alert(failMsg);
               loadPlugins();
             }
           }
@@ -464,7 +594,7 @@ async function initToolsView() {
     
     installStatus.classList.remove('hidden');
     installStatus.className = 'font-code-sm text-code-sm text-on-surface-variant p-3 bg-surface-container-lowest rounded animate-pulse';
-    installStatus.textContent = `Installing ${name}...`;
+    installStatus.textContent = currentLanguage === 'zh' ? `正在安装 ${name}...` : `Installing ${name}...`;
     installBtn.disabled = true;
     
     try {
@@ -472,12 +602,12 @@ async function initToolsView() {
       installStatus.classList.remove('animate-pulse');
       if (res.success) {
         installStatus.className = 'font-code-sm text-code-sm text-emerald-500 p-3 bg-surface-container-lowest rounded';
-        installStatus.textContent = `Success!\n${res.output}`;
+        installStatus.textContent = `${currentLanguage === 'zh' ? '安装成功！' : 'Success!'}\n${res.output}`;
         installName.value = '';
         loadPlugins();
       } else {
         installStatus.className = 'font-code-sm text-code-sm text-error p-3 bg-surface-container-lowest rounded';
-        installStatus.textContent = `Failed:\n${res.output}`;
+        installStatus.textContent = `${currentLanguage === 'zh' ? '安装失败：' : 'Failed:'}\n${res.output}`;
       }
     } catch (e) {
       installStatus.className = 'font-code-sm text-code-sm text-error p-3 bg-surface-container-lowest rounded';
@@ -497,6 +627,7 @@ async function initSettingsView() {
   const inpEditor = document.getElementById('setting-editor');
   const selPermissions = document.getElementById('setting-permissions');
   const selArtifacts = document.getElementById('setting-artifacts');
+  const selLanguage = document.getElementById('setting-language');
   const saveMsg = document.getElementById('save-status-msg');
   
   const binPath = document.getElementById('diag-bin-path');
@@ -518,6 +649,9 @@ async function initSettingsView() {
       inpEditor.value = currentSettings.editor || 'notepad.exe';
       selPermissions.value = currentSettings.toolPermission || 'always-proceed';
       selArtifacts.value = currentSettings.artifactReviewPolicy || 'always-proceed';
+      if (selLanguage) {
+        selLanguage.value = currentSettings.language || 'en';
+      }
     } catch (e) {
       console.error("Load settings failed:", e);
     }
@@ -530,10 +664,35 @@ async function initSettingsView() {
     currentSettings.editor = inpEditor.value;
     currentSettings.toolPermission = selPermissions.value;
     currentSettings.artifactReviewPolicy = selArtifacts.value;
+    if (selLanguage) {
+      currentSettings.language = selLanguage.value;
+    }
     
     try {
       const res = await window.api.saveSettings(currentSettings);
       if (res.success) {
+        if (selLanguage) {
+          currentLanguage = selLanguage.value;
+          translateDOM(document);
+          
+          // Re-translate index navigation labels
+          authStatusLabel.textContent = currentLanguage === 'zh' ? '专业版 • 已连接' : 'Pro Plan • Connected';
+          const userPlanLabel = document.getElementById('user-plan-label');
+          if (userPlanLabel) {
+            userPlanLabel.textContent = currentLanguage === 'zh' ? '开发者' : 'Developer';
+          }
+          
+          const titles = {
+            conversation: currentLanguage === 'zh' ? '会话控制台' : 'Conversations Workspace',
+            workspace_home: currentLanguage === 'zh' ? '已注册工作区' : 'Registered Workspaces',
+            subagents: currentLanguage === 'zh' ? '智能体监控' : 'Subagents Monitor',
+            changes: currentLanguage === 'zh' ? 'VCS 代码变更' : 'VCS File Changes',
+            tools: currentLanguage === 'zh' ? '工具与扩展插件' : 'Tools & Extension Packages',
+            settings: currentLanguage === 'zh' ? '常规系统设置' : 'General Settings'
+          };
+          viewTitle.textContent = titles[currentView] || (currentLanguage === 'zh' ? '控制中心' : 'Control Center');
+        }
+        
         saveMsg.className = 'self-center font-label-sm text-label-sm text-emerald-500 transition-opacity opacity-100';
         setTimeout(() => {
           saveMsg.className = 'self-center font-label-sm text-label-sm text-emerald-500 transition-opacity opacity-0';

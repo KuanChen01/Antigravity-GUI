@@ -31,32 +31,32 @@
     <div class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-tabs">
       <button data-view="conversation" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">forum</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Conversations</span>
+        <span data-i18n="NAV_CONVERSATIONS" class="font-body-md text-body-md group-hover:scale-95 duration-75">Conversations</span>
       </button>
       
       <button data-view="workspace_home" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">grid_view</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Workspaces</span>
+        <span data-i18n="NAV_WORKSPACES" class="font-body-md text-body-md group-hover:scale-95 duration-75">Workspaces</span>
       </button>
 
       <button data-view="subagents" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">smart_toy</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Agents</span>
+        <span data-i18n="NAV_AGENTS" class="font-body-md text-body-md group-hover:scale-95 duration-75">Agents</span>
       </button>
 
       <button data-view="changes" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">difference</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Changes</span>
+        <span data-i18n="NAV_CHANGES" class="font-body-md text-body-md group-hover:scale-95 duration-75">Changes</span>
       </button>
 
       <button data-view="tools" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">build</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Tools</span>
+        <span data-i18n="NAV_TOOLS" class="font-body-md text-body-md group-hover:scale-95 duration-75">Tools</span>
       </button>
 
       <button data-view="settings" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
         <span class="material-symbols-outlined text-[20px]">settings</span>
-        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Settings</span>
+        <span data-i18n="NAV_SETTINGS" class="font-body-md text-body-md group-hover:scale-95 duration-75">Settings</span>
       </button>
     </div>
     
@@ -69,7 +69,7 @@
         </div>
         <button id="check-updates-btn" class="w-full flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
           <span class="material-symbols-outlined text-[18px]">update</span>
-          <span class="font-label-sm text-label-sm">Check Updates</span>
+          <span data-i18n="CHECK_UPDATES" class="font-label-sm text-label-sm">Check Updates</span>
         </button>
       </div>
     </div>
@@ -82,7 +82,7 @@
       <div class="flex items-center gap-4">
         <div class="font-headline-md text-headline-md font-black text-on-surface mr-2 tracking-tight flex items-center gap-2">
           <span class="material-symbols-outlined text-[18px]">terminal</span>
-          <span class="text-sm" id="view-title">Control Center</span>
+          <span class="text-sm" id="view-title" data-i18n="TITLE_CONTROL_CENTER">Control Center</span>
         </div>
         <div class="h-4 w-px bg-outline-variant mx-2"></div>
         <div id="breadcrumb" class="font-code-md text-code-md text-on-surface-variant">
@@ -105,10 +105,10 @@
     <div class="bg-surface-container-high rounded-lg border border-outline-variant max-w-lg w-full overflow-hidden shadow-ambient m-4">
       <div class="bg-error-container/10 px-6 py-4 border-b border-outline-variant flex items-center gap-3">
         <span class="material-symbols-outlined text-error text-[24px]">security</span>
-        <h3 class="font-headline-md text-headline-md text-on-background font-bold" style="font-size: 18px;">Tool Execution Permission Required</h3>
+        <h3 data-i18n="PERM_TITLE" class="font-headline-md text-headline-md text-on-background font-bold" style="font-size: 18px;">Tool Execution Permission Required</h3>
       </div>
       <div class="px-6 py-4 space-y-4">
-        <p class="text-on-surface-variant text-body-md" id="permission-description">
+        <p data-i18n="PERM_DESC" class="text-on-surface-variant text-body-md" id="permission-description">
           An agent is attempting to execute a tool. Please review and approve this action.
         </p>
         <pre class="bg-surface-container-lowest p-4 rounded font-code-md text-code-md overflow-x-auto text-on-surface max-h-48" id="permission-details">
@@ -116,8 +116,8 @@
         </pre>
       </div>
       <div class="bg-surface-container px-6 py-3 border-t border-outline-variant flex justify-end gap-3">
-        <button id="deny-permission-btn" class="px-4 py-2 border border-outline-variant rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm">Deny</button>
-        <button id="approve-permission-btn" class="px-4 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm">Approve</button>
+        <button data-i18n="PERM_DENY" id="deny-permission-btn" class="px-4 py-2 border border-outline-variant rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm">Deny</button>
+        <button data-i18n="PERM_APPROVE" id="approve-permission-btn" class="px-4 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm">Approve</button>
       </div>
     </div>
   </div>
