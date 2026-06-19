@@ -337,12 +337,10 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
   }
   
   let adjustedPrompt = prompt;
-  if (mode === 'fast') {
-    if (!prompt.trim().startsWith('/fast')) {
+  if (!prompt.trim().startsWith('/')) {
+    if (mode === 'fast') {
       adjustedPrompt = `/fast ${prompt}`;
-    }
-  } else if (mode === 'planning') {
-    if (!prompt.trim().startsWith('/planning')) {
+    } else if (mode === 'planning') {
       adjustedPrompt = `/planning ${prompt}`;
     }
   }
@@ -358,9 +356,10 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
     args.push('--add-dir', workspacePath);
   }
 
-  // Load model from settings if running in planning mode
+  // Load model from settings if running in planning mode and not overridden by a custom slash command
   let selectedModel = '';
-  if (mode === 'planning') {
+  const isPlanningMode = (mode === 'planning' && !prompt.trim().startsWith('/')) || prompt.trim().startsWith('/planning');
+  if (isPlanningMode) {
     const settingsPath = path.join(getCliDir(), 'settings.json');
     try {
       if (fs.existsSync(settingsPath)) {
@@ -369,7 +368,9 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
           selectedModel = settings.model;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to read settings in prompt run:", e);
+    }
   }
 
   if (selectedModel) {
