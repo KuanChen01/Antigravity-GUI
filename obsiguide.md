@@ -113,13 +113,14 @@
 - Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace` API bridge.
 - Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, and clean up toggle buttons handlers.
 - Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, and delete the legacy toggle buttons from the top action bar.
+- Updated [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html) to replace the uncompiled `px-gutter` in the top navbar header with a standard Tailwind `px-6` utility to resolve layout alignment.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application (`npm start`), verify that the planning and fast mode toggle buttons are no longer rendered in the top action bar, and test that explicit slash commands typed in the textarea function correctly.
+- Start the application (`npm start`) and verify that both the "Control Center" title on the left and the connection status dot on the right have a comfortable margin from the window edges.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: mode-toggle-buttons-removed
+- status: header-padding-updated
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
