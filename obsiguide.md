@@ -111,19 +111,15 @@
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
 - Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace` handler.
 - Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace` API bridge.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, and dynamically update sidebar workspace title.
-- Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title for dynamic updates.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, and implement slash commands autocomplete.
+- Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title and insert the autocomplete popup div container.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application (`npm start`) and verify that the "Conversations" sidebar header displays the active workspace folder name (e.g. "Antigravity-GUI") when a workspace is active.
+- Start the application (`npm start`), focus the conversation prompt box, type `/`, and verify that the floating suggestions popup displays slash commands correctly.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: sidebar-workspace-title-updated
+- status: slash-command-autocomplete-implemented
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
-
-
-
-
