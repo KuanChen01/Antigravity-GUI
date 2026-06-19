@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversation History | Antigravity CLI</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#e2e1ee",
+                        "surface-container-low": "#191b24",
+                        "background": "#11131b",
+                        "surface-tint": "#adc6ff",
+                        "surface-variant": "#33343e",
+                        "secondary": "#c0c1ff",
+                        "tertiary": "#bcc7de",
+                        "outline": "#8c909f",
+                        "on-secondary-fixed-variant": "#2f2ebe",
+                        "primary": "#adc6ff",
+                        "surface-container-lowest": "#0c0e16",
+                        "on-tertiary": "#263143",
+                        "on-primary-container": "#00285d",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-primary-fixed-variant": "#004395",
+                        "surface": "#11131b",
+                        "on-error-container": "#ffdad6",
+                        "inverse-on-surface": "#2e3039",
+                        "primary-fixed-dim": "#adc6ff",
+                        "secondary-container": "#3131c0",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "surface-bright": "#373942",
+                        "on-primary": "#002e6a",
+                        "on-primary-fixed": "#001a42",
+                        "on-secondary": "#1000a9",
+                        "on-surface": "#e2e1ee",
+                        "error-container": "#93000a",
+                        "surface-dim": "#11131b",
+                        "tertiary-container": "#8691a7",
+                        "tertiary-fixed-dim": "#bcc7de",
+                        "on-error": "#690005",
+                        "primary-fixed": "#d8e2ff",
+                        "tertiary-fixed": "#d8e3fb",
+                        "surface-container-high": "#282a32",
+                        "on-secondary-fixed": "#07006c",
+                        "on-tertiary-fixed-variant": "#3c475a",
+                        "primary-container": "#4d8eff",
+                        "outline-variant": "#424754",
+                        "on-background": "#e2e1ee",
+                        "on-tertiary-container": "#1f2a3c",
+                        "on-secondary-container": "#b0b2ff",
+                        "surface-container": "#1d1f28",
+                        "on-tertiary-fixed": "#111c2d",
+                        "on-surface-variant": "#c2c6d6",
+                        "inverse-primary": "#005ac2",
+                        "surface-container-highest": "#33343e",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "sidebar-collapsed": "64px",
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "sidebar-width": "240px",
+                        "margin-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "code-md": ["JetBrains Mono"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "code-sm": ["JetBrains Mono"],
+                        "body-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "code-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "code-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #05060b; color: #e2e1ee; }
+        .glass-panel { background: rgba(18, 22, 36, 0.7); backdrop-filter: blur(12px); border: 1px solid #1e293b; }
+        .subtle-ring { box-shadow: 0 0 0 1px #1e293b; }
+        .nav-active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background-color: #3b82f6; border-radius: 0 2px 2px 0; }
+        
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #33343e; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #424754; }
+    </style>
+</head>
+<body class="font-body-md text-body-md overflow-hidden bg-[#05060b]">
+<!-- SideNavBar -->
+<nav class="hidden md:flex w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant bg-surface-container-low dark:bg-surface-container-low flex flex-col h-full py-4 z-50">
+<!-- Header -->
+<div class="px-gutter mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded-DEFAULT bg-primary-container flex items-center justify-center text-on-primary-container font-headline-md text-headline-md font-bold">A</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary text-lg leading-tight">Antigravity CLI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Pro Plan • Connected</p>
+</div>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 px-3 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">add_box</span>
+<span class="font-body-md text-body-md font-medium">New Task</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">grid_view</span>
+<span class="font-body-md text-body-md font-medium">Workspaces</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT bg-secondary-container text-on-secondary-container border-l-4 border-primary scale-95 duration-75 relative group" href="#">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+<span class="font-body-md text-body-md font-medium">Conversations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">smart_toy</span>
+<span class="font-body-md text-body-md font-medium">Agents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">difference</span>
+<span class="font-body-md text-body-md font-medium">Changes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">build</span>
+<span class="font-body-md text-body-md font-medium">Tools</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">auto_mode</span>
+<span class="font-body-md text-body-md font-medium">Automations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">settings</span>
+<span class="font-body-md text-body-md font-medium">Settings</span>
+</a>
+</div>
+<!-- Footer Actions -->
+<div class="px-3 mt-auto space-y-1 pt-4 border-t border-outline-variant/30">
+<button class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-DEFAULT bg-surface-variant text-on-surface font-body-md text-body-md font-medium hover:bg-surface-bright transition-colors mb-4">
+                Upgrade Plan
+            </button>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">account_circle</span>
+<span class="font-body-md text-body-md font-medium">Account</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-primary transition-colors">analytics</span>
+<span class="font-body-md text-body-md font-medium">Usage</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="md:ml-sidebar-width h-screen flex flex-col relative">
+<!-- TopNavBar -->
+<header class="h-10 fixed top-0 right-0 w-full md:w-[calc(100%-theme(spacing.sidebar-width))] border-b border-outline-variant bg-surface-dim dark:bg-background flex items-center justify-between px-gutter z-40">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 font-code-md text-code-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">folder</span>
+<span>main</span>
+<span class="text-outline-variant">/</span>
+<span>feat/ai-refactor</span>
+<span class="text-outline-variant">/</span>
+<span class="text-primary font-bold">/src/core</span>
+</div>
+<!-- Global Search (Center) -->
+<div class="hidden lg:flex items-center bg-surface-container-high rounded-full px-3 py-1 border border-outline-variant/50 w-64 focus-within:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md font-body-md w-full text-on-surface placeholder-on-surface-variant/50 p-0 h-5" placeholder="Search across project..." type="text"/>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-3">
+<div class="flex bg-surface-container-high rounded-DEFAULT p-0.5 border border-outline-variant/50">
+<button class="px-3 py-1 rounded-sm bg-[#3b82f6] text-white font-label-sm text-label-sm shadow-sm opacity-80 transition-opacity hover:opacity-100">Planning Mode</button>
+<button class="px-3 py-1 rounded-sm text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">Fast Mode</button>
+</div>
+<div class="h-4 w-px bg-outline-variant/50 mx-1"></div>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-DEFAULT p-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-DEFAULT p-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">security</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant rounded-DEFAULT p-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">keyboard_command_key</span>
+</button>
+<img alt="User Avatar" class="w-6 h-6 rounded-full border border-outline-variant ml-2 object-cover" data-alt="A small circular avatar image showing a stylized geometric profile icon in dark blue and neon blue tones, representing a developer profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5AnOZbeYUB0GqNczjUYLZdi94tc3EupoXLPcdZSk0vduaZS_pf5iILHIs-q2bluvf-He7B8mNsCRayQHl4afT5ZcClnDePOenavlrl1zz7TpO3ulFBIEoKZdHV4EIW_ylu9GatuFW6cueUYFxrPBW1YdvaopVLciPs4yvIq4BmqD9NYzFzmU5QAPFn8ftHZiSMsj2icS3bC0G-h1NmGLrtoesFzYzIdUjiMNYer8_Nqi7mnWSbWUohE-DXjZFmEjzj1dgc0TWU3Zi"/>
+</div>
+</header>
+<!-- Canvas / Workspace -->
+<div class="flex-1 mt-10 p-gutter overflow-y-auto relative z-10">
+<!-- Background Atmospheric Effect -->
+<div class="absolute inset-0 pointer-events-none opacity-[0.03] z-0" style="background-image: radial-gradient(circle at 50% 0%, #3b82f6 0%, transparent 70%);"></div>
+<div class="max-w-6xl mx-auto space-y-6 relative z-10">
+<!-- Page Header & Filters -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-6 border-b border-[#1e293b]">
+<div>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight mb-2">Conversations</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">History of all AI pairing sessions, refactoring tasks, and context explorations across your workspaces.</p>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-on-surface-variant">search</span>
+<input class="bg-[#121624] border border-[#1e293b] rounded-DEFAULT pl-9 pr-3 py-1.5 text-body-md font-body-md text-on-surface focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] w-64 placeholder-on-surface-variant/50 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.2)]" placeholder="Search by intent, file, or id..." type="text"/>
+</div>
+<div class="flex bg-[#121624] border border-[#1e293b] rounded-DEFAULT p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm hover:bg-[#1c2136] text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors border-r border-[#1e293b] last:border-r-0">
+<span class="material-symbols-outlined text-[14px]">grid_view</span>
+                                Workspace
+                                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm hover:bg-[#1c2136] text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors border-r border-[#1e293b] last:border-r-0">
+<span class="material-symbols-outlined text-[14px]">call_split</span>
+                                Branch
+                                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm hover:bg-[#1c2136] text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-colors">
+<span class="material-symbols-outlined text-[14px]">smart_toy</span>
+                                Model
+                                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Session Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+<!-- Main List Area -->
+<div class="xl:col-span-2 space-y-3">
+<!-- Item 1: Success -->
+<div class="glass-panel rounded-lg p-4 hover:bg-[#1c2136] transition-all cursor-pointer group relative border-l-2 border-l-[#10b981]">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#10b981]/10 flex items-center justify-center text-[#10b981]">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<h3 class="font-headline-md text-body-lg font-semibold text-on-surface group-hover:text-[#3b82f6] transition-colors">Feature: OAuth Integration</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-sm bg-[#1e293b] text-on-surface-variant font-code-sm text-code-sm border border-[#33343e] flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">call_split</span> main
+                                            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant/70 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 45m ago
+                                            </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 rounded bg-[#1e293b] text-on-surface hover:text-[#3b82f6] transition-colors" title="Resume Session">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="bg-[#05060b] rounded p-3 font-code-sm text-code-sm text-on-surface-variant border border-[#1e293b]/50">
+<div class="flex justify-between items-center mb-1.5">
+<span class="text-on-surface font-medium">Session Summary</span>
+<span class="text-[#3b82f6]">12 files modified</span>
+</div>
+<p class="text-on-surface-variant/80 truncate">Implemented Google and GitHub OAuth providers, added JWT middleware, and updated user schemas.</p>
+</div>
+</div>
+<!-- Item 2: Failed/Warning -->
+<div class="glass-panel rounded-lg p-4 hover:bg-[#1c2136] transition-all cursor-pointer group relative border-l-2 border-l-[#ef4444]">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#ef4444]/10 flex items-center justify-center text-[#ef4444]">
+<span class="material-symbols-outlined text-[18px]">error</span>
+</div>
+<div>
+<h3 class="font-headline-md text-body-lg font-semibold text-on-surface group-hover:text-[#3b82f6] transition-colors">Bug: Memory leak in worker</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-sm bg-[#1e293b] text-on-surface-variant font-code-sm text-code-sm border border-[#33343e] flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">call_split</span> fix-leak
+                                            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant/70 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> 2h ago
+                                            </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 rounded bg-[#1e293b] text-on-surface hover:text-[#3b82f6] transition-colors" title="Resume Session">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="bg-[#05060b] rounded p-3 font-code-sm text-code-sm text-on-surface-variant border border-[#1e293b]/50">
+<div class="flex justify-between items-center mb-1.5">
+<span class="text-on-surface font-medium">Session Summary</span>
+<span class="text-[#f59e0b]">2 files modified (Incomplete)</span>
+</div>
+<p class="text-on-surface-variant/80 truncate">Analyzed heap dump, attempted to patch circular reference in stream handler. Context window exceeded.</p>
+</div>
+</div>
+<!-- Item 3: Neutral -->
+<div class="glass-panel rounded-lg p-4 hover:bg-[#1c2136] transition-all cursor-pointer group relative border-l-2 border-l-[#8c909f]">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-[#1e293b] flex items-center justify-center text-[#8c909f]">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</div>
+<div>
+<h3 class="font-headline-md text-body-lg font-semibold text-on-surface group-hover:text-[#3b82f6] transition-colors">Architectural Planning: V2 DB Schema</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="px-2 py-0.5 rounded-sm bg-[#1e293b] text-on-surface-variant font-code-sm text-code-sm border border-[#33343e] flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">folder</span> docs
+                                            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant/70 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Yesterday
+                                            </span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 rounded bg-[#1e293b] text-on-surface hover:text-[#3b82f6] transition-colors" title="Resume Session">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="bg-[#05060b] rounded p-3 font-code-sm text-code-sm text-on-surface-variant border border-[#1e293b]/50">
+<div class="flex justify-between items-center mb-1.5">
+<span class="text-on-surface font-medium">Session Summary</span>
+<span class="text-on-surface-variant">0 files modified</span>
+</div>
+<p class="text-on-surface-variant/80 truncate">Drafted ERD for multi-tenant billing models. Discussed Postgres partitioning strategies.</p>
+</div>
+</div>
+</div>
+<!-- Right Panel: Session Preview (Bento Box Style) -->
+<div class="hidden xl:block">
+<div class="glass-panel rounded-xl p-5 sticky top-6 h-[calc(100vh-140px)] flex flex-col">
+<div class="flex items-center justify-between mb-4 pb-4 border-b border-[#1e293b]">
+<h3 class="font-headline-md text-headline-md text-on-surface text-lg">Preview</h3>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 bg-[#3b82f6] text-white rounded font-label-sm text-label-sm hover:bg-[#2563eb] transition-colors">Resume</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pr-2 space-y-4">
+<!-- Metadata Box -->
+<div class="bg-[#05060b] rounded border border-[#1e293b] p-3 space-y-2">
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Model</span>
+<span class="text-on-surface">GPT-4 Turbo (Planning)</span>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Context Tokens</span>
+<span class="text-on-surface">24,592 / 128k</span>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Duration</span>
+<span class="text-on-surface">1h 14m</span>
+</div>
+</div>
+<!-- Mini Terminal View -->
+<div class="bg-[#05060b] rounded border border-[#1e293b] overflow-hidden flex flex-col">
+<div class="bg-[#1e293b]/50 px-3 py-1.5 flex items-center gap-2 border-b border-[#1e293b]">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant">terminal</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">Latest Output</span>
+</div>
+<div class="p-3 font-code-sm text-code-sm text-[#bcc7de] bg-[#05060b] min-h-[120px]">
+<span class="text-[#10b981]">✔</span> Applied diff to src/auth/oauth.ts<br/>
+<span class="text-[#10b981]">✔</span> Applied diff to src/routes/auth.ts<br/>
+<span class="text-on-surface-variant">Running linting...</span><br/>
+<span class="text-[#3b82f6]">ℹ</span> 2 warnings found in oauth.ts (any types)<br/>
+<span class="text-on-surface-variant">Commit generated: "feat: add Google/GitHub OAuth providers"</span>
+</div>
+</div>
+<!-- Modified Files Box -->
+<div>
+<h4 class="font-label-sm text-label-sm text-on-surface-variant mb-2 px-1">Modified Files (12)</h4>
+<div class="space-y-1">
+<div class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1c2136] font-code-sm text-code-sm text-on-surface cursor-pointer">
+<span class="text-[#3b82f6]">M</span>
+<span class="truncate">src/auth/oauth.ts</span>
+<span class="ml-auto text-[#10b981]">+142</span>
+<span class="text-[#ef4444]">-12</span>
+</div>
+<div class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1c2136] font-code-sm text-code-sm text-on-surface cursor-pointer">
+<span class="text-[#10b981]">A</span>
+<span class="truncate">src/routes/auth.ts</span>
+<span class="ml-auto text-[#10b981]">+85</span>
+<span class="text-[#ef4444]">-0</span>
+</div>
+<div class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#1c2136] font-code-sm text-code-sm text-on-surface cursor-pointer">
+<span class="text-[#3b82f6]">M</span>
+<span class="truncate">package.json</span>
+<span class="ml-auto text-[#10b981]">+4</span>
+<span class="text-[#ef4444]">-1</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

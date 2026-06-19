@@ -1,0 +1,99 @@
+<div class="p-8 space-y-8 h-full overflow-y-auto bg-background max-w-4xl mx-auto">
+  <div class="border-b border-outline-variant pb-4">
+    <h2 data-i18n="SETTINGS_HEADER" class="font-headline-lg text-headline-lg font-bold text-on-background">Settings</h2>
+    <p data-i18n="SETTINGS_DESC" class="text-on-surface-variant text-body-md mt-1">Configure global and session parameters for the Antigravity CLI agent.</p>
+  </div>
+
+  <form id="settings-form" class="space-y-6">
+    <!-- General Settings Card -->
+    <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
+      <h3 data-i18n="SETTINGS_CONF_TITLE" class="font-headline-md text-headline-md text-primary font-bold" style="font-size: 16px;">General Configuration</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Model Selection -->
+        <div class="space-y-2">
+          <label data-i18n="SETTINGS_MODEL" for="setting-model" class="block font-label-sm text-label-sm text-on-background">Default Agent Model</label>
+          <select id="setting-model" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background">
+            <option value="Gemini 3.5 Flash (High)">Gemini 3.5 Flash (High)</option>
+            <option value="Gemini 3.5 Flash (Medium)">Gemini 3.5 Flash (Medium)</option>
+            <option value="Gemini 3.5 Flash (Low)">Gemini 3.5 Flash (Low)</option>
+          </select>
+        </div>
+
+        <!-- Editor Path -->
+        <div class="space-y-2">
+          <label data-i18n="SETTINGS_EDITOR" for="setting-editor" class="block font-label-sm text-label-sm text-on-background">Default Text Editor</label>
+          <input type="text" id="setting-editor" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-code-md font-code-md text-on-background" placeholder="e.g. notepad.exe or code"/>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Tool Permission Policy -->
+        <div class="space-y-2">
+          <label data-i18n="SETTINGS_PERMISSIONS" for="setting-permissions" class="block font-label-sm text-label-sm text-on-background">Tool Permission Policy</label>
+          <select id="setting-permissions" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background">
+            <option value="always-proceed" data-i18n="SETTINGS_PERMISSIONS_ALWAYS">Always Proceed (Auto-Approve All Tools)</option>
+            <option value="proceed-in-sandbox" data-i18n="SETTINGS_PERMISSIONS_SANDBOX">Proceed in Sandbox (Confirm only unsandboxed commands)</option>
+            <option value="ask" data-i18n="SETTINGS_PERMISSIONS_ASK">Ask for Confirmation (Prompt for all operations)</option>
+          </select>
+        </div>
+
+        <!-- Artifact Review Policy -->
+        <div class="space-y-2">
+          <label data-i18n="SETTINGS_ARTIFACTS" for="setting-artifacts" class="block font-label-sm text-label-sm text-on-background">Artifact Review Policy</label>
+          <select id="setting-artifacts" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background">
+            <option value="always-proceed" data-i18n="SETTINGS_ARTIFACTS_ALWAYS">Always Proceed (Auto-Save Artifacts)</option>
+            <option value="ask" data-i18n="SETTINGS_ARTIFACTS_ASK">Ask for Confirmation (Prompt before saving changes)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Language Selection -->
+        <div class="space-y-2">
+          <label data-i18n="SETTINGS_LANGUAGE" for="setting-language" class="block font-label-sm text-label-sm text-on-background">Interface Language / 界面语言</label>
+          <select id="setting-language" class="w-full bg-surface-container-lowest border border-outline-variant rounded p-2 focus:ring-1 focus:ring-primary text-body-md text-on-background">
+            <option value="en">English</option>
+            <option value="zh">中文 (Chinese)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions Panel -->
+    <div class="flex justify-end gap-3 border-t border-outline-variant pt-6">
+      <span id="save-status-msg" data-i18n="SETTINGS_SAVE_SUCCESS" class="self-center font-label-sm text-label-sm text-primary transition-opacity opacity-0">Settings saved successfully!</span>
+      <button type="submit" data-i18n="SETTINGS_SAVE_BTN" class="px-6 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm shadow-sm">Save Configurations</button>
+    </div>
+  </form>
+
+  <!-- Troubleshooting & Status info -->
+  <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
+    <h3 data-i18n="SETTINGS_DIAG_TITLE" class="font-headline-md text-headline-md text-primary font-bold" style="font-size: 16px;">App Version & Connection Diagnostics</h3>
+    <div class="font-code-md text-code-md text-on-surface-variant space-y-2">
+      <p><span data-i18n="SETTINGS_DIAG_BIN">Executable Path:</span> <span id="diag-bin-path" class="text-on-surface">Detecting...</span></p>
+      <p><span data-i18n="SETTINGS_DIAG_DIR">CLI Configuration Dir:</span> <span id="diag-config-dir" class="text-on-surface">Detecting...</span></p>
+      <p><span data-i18n="SETTINGS_DIAG_LS">Active Language Server:</span> <span id="diag-ls-address" class="text-on-surface">Detecting...</span></p>
+      <p><span data-i18n="SETTINGS_DIAG_SESSION">Active Session ID:</span> <span id="diag-session-id" class="text-on-surface">Detecting...</span></p>
+    </div>
+    <div class="pt-2 flex gap-3">
+      <button id="cli-changelog-btn" data-i18n="SETTINGS_VIEW_CHANGELOG" class="px-4 py-2 border border-outline-variant rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm text-on-surface">View Changelog</button>
+      <button id="refresh-diag-btn" data-i18n="SETTINGS_RUN_DIAG" class="px-4 py-2 border border-outline-variant rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm text-on-surface">Run Diagnostics</button>
+    </div>
+  </div>
+
+  <!-- Changelog Viewer Overlay (Inline Modal) -->
+  <div id="changelog-modal" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center hidden">
+    <div class="bg-surface-container-high rounded-lg border border-outline-variant max-w-3xl w-full overflow-hidden shadow-ambient m-4 flex flex-col max-h-[85vh]">
+      <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between shrink-0">
+        <h3 data-i18n="SETTINGS_CHANGELOG_TITLE" class="font-headline-md text-headline-md text-on-background font-bold" style="font-size: 18px;">Antigravity CLI Changelog</h3>
+        <button id="close-changelog-btn" class="p-1 hover:bg-surface-variant rounded text-on-surface-variant transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto font-code-sm text-code-sm text-on-surface-variant bg-surface-container-lowest" id="changelog-content">
+        <!-- Changelog text dumped here -->
+      </div>
+    </div>
+  </div>
+</div>

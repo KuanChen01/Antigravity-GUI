@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Antigravity CLI - Workspace Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#e2e1ee",
+                      "surface-container-low": "#191b24",
+                      "background": "#11131b",
+                      "surface-tint": "#adc6ff",
+                      "surface-variant": "#33343e",
+                      "secondary": "#c0c1ff",
+                      "tertiary": "#bcc7de",
+                      "outline": "#8c909f",
+                      "on-secondary-fixed-variant": "#2f2ebe",
+                      "primary": "#adc6ff",
+                      "surface-container-lowest": "#0c0e16",
+                      "on-tertiary": "#263143",
+                      "on-primary-container": "#00285d",
+                      "secondary-fixed": "#e1e0ff",
+                      "on-primary-fixed-variant": "#004395",
+                      "surface": "#11131b",
+                      "on-error-container": "#ffdad6",
+                      "inverse-on-surface": "#2e3039",
+                      "primary-fixed-dim": "#adc6ff",
+                      "secondary-container": "#3131c0",
+                      "secondary-fixed-dim": "#c0c1ff",
+                      "surface-bright": "#373942",
+                      "on-primary": "#002e6a",
+                      "on-primary-fixed": "#001a42",
+                      "on-secondary": "#1000a9",
+                      "on-surface": "#e2e1ee",
+                      "error-container": "#93000a",
+                      "surface-dim": "#11131b",
+                      "tertiary-container": "#8691a7",
+                      "tertiary-fixed-dim": "#bcc7de",
+                      "on-error": "#690005",
+                      "primary-fixed": "#d8e2ff",
+                      "tertiary-fixed": "#d8e3fb",
+                      "surface-container-high": "#282a32",
+                      "on-secondary-fixed": "#07006c",
+                      "on-tertiary-fixed-variant": "#3c475a",
+                      "primary-container": "#4d8eff",
+                      "outline-variant": "#424754",
+                      "on-background": "#e2e1ee",
+                      "on-tertiary-container": "#1f2a3c",
+                      "on-secondary-container": "#b0b2ff",
+                      "surface-container": "#1d1f28",
+                      "on-tertiary-fixed": "#111c2d",
+                      "on-surface-variant": "#c2c6d6",
+                      "inverse-primary": "#005ac2",
+                      "surface-container-highest": "#33343e",
+                      "error": "#ffb4ab"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "sidebar-collapsed": "64px",
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "sidebar-width": "240px",
+                      "margin-desktop": "24px"
+              },
+              "fontFamily": {
+                      "code-md": ["JetBrains Mono"],
+                      "headline-md": ["Geist"],
+                      "headline-lg": ["Geist"],
+                      "label-sm": ["Geist"],
+                      "body-lg": ["Geist"],
+                      "code-sm": ["JetBrains Mono"],
+                      "body-md": ["Geist"]
+              },
+              "fontSize": {
+                      "code-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "code-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hard ambient shadow for overlays as per style guide */
+        .shadow-ambient {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        /* Custom scrollbar for deep space theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #11131b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #33343e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #424754;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen overflow-hidden flex font-body-md text-body-md">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant flex flex-col py-4 z-50">
+<!-- Header -->
+<div class="px-4 mb-6 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden shrink-0 border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A stylized geometric, futuristic 3D avatar of a professional developer identity in a dark premium environment. Soft electric blue underglow. Minimalist and corporate modern." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiHsdAPFS3FF7S1PXS6AdHqEt_voxBIGqKJOSYbIT50RPNkD-M7BO0Zj__bvAFni8NuaimLunznuihY14R6o6qZa8c5Z0BkJQHdf1RawSO12lAWB92YSASjB-o4AFFxpjIO3Ul2GVohIYGuKsbgoVqnjVyDEGfBwcAie2qT3vKQAgHeHe_KSsYD8-VGEvrBdqrXOJ12H55STt7JAUobu1tbMMTmVv24oDsS7e08yJnhSL2PGkll-OZIUzWM1Vm9suuomjjmMqGpiEl"/>
+</div>
+<div class="flex-1 min-w-0">
+<h1 class="font-headline-md text-headline-md font-bold text-primary truncate" style="font-size: 14px; line-height: 20px;">Antigravity CLI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant truncate">Pro Plan • Connected</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<!-- New Task (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">add_box</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">New Task</span>
+</button>
+<!-- Workspaces (Active) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded bg-secondary-container text-on-secondary-container border-l-4 border-primary group">
+<span class="material-symbols-outlined icon-fill text-[20px]">grid_view</span>
+<span class="font-body-md text-body-md scale-95 duration-75">Workspaces</span>
+</button>
+<!-- Conversations (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Conversations</span>
+</button>
+<!-- Agents (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Agents</span>
+</button>
+<!-- Changes (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">difference</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Changes</span>
+</button>
+<!-- Tools (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">build</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Tools</span>
+</button>
+<!-- Automations (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">auto_mode</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Automations</span>
+</button>
+<!-- Settings (Inactive) -->
+<button class="w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-body-md text-body-md group-hover:scale-95 duration-75">Settings</span>
+</button>
+</div>
+<!-- Footer -->
+<div class="px-4 mt-auto space-y-4">
+<button class="w-full bg-[#3b82f6] text-white hover:bg-[#2563eb] transition-colors py-2 px-4 rounded font-label-sm text-label-sm font-medium">Upgrade Plan</button>
+<div class="space-y-1">
+<button class="w-full flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[18px]">account_circle</span>
+<span class="font-label-sm text-label-sm">Account</span>
+</button>
+<button class="w-full flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+<span class="font-label-sm text-label-sm">Usage</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="bg-surface-dim dark:bg-background h-10 fixed top-0 right-0 w-[calc(100%-theme(spacing.sidebar-width))] border-b border-outline-variant flex items-center justify-between px-gutter z-40">
+<!-- Breadcrumbs / Navigation Links -->
+<div class="flex items-center gap-2 font-code-md text-code-md text-on-surface-variant">
+<span class="font-headline-md text-headline-md font-black text-on-surface opacity-0 w-0 overflow-hidden">Antigravity CLI</span>
+<button class="hover:bg-surface-variant px-1.5 py-0.5 rounded transition-colors text-primary font-bold">main</button>
+<span class="opacity-50">/</span>
+<button class="hover:bg-surface-variant px-1.5 py-0.5 rounded transition-colors">feat/ai-refactor</button>
+<span class="opacity-50">/</span>
+<button class="hover:bg-surface-variant px-1.5 py-0.5 rounded transition-colors">/src/core</button>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-3 font-label-sm text-label-sm">
+<button class="flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface-variant px-2 py-1 rounded transition-colors border border-transparent hover:border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-[#10b981]"></span>
+                Fast Mode
+            </button>
+<button class="bg-[#3b82f6] text-white hover:opacity-80 transition-opacity px-3 py-1 rounded font-medium flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">model_training</span>
+                Planning Mode
+            </button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant p-1 rounded transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant p-1 rounded transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[18px]">security</span>
+</button>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant p-1 rounded transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[18px]">keyboard_command_key</span>
+</button>
+<div class="w-6 h-6 rounded-full bg-surface-variant overflow-hidden ml-2 border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A small, stylized geometric 3D avatar headshot of a developer in a dark environment with blue lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZ0_XXMwvK0SmJVTyHPo4jZxcyBjaZibnZLGDUer-1e7do_6XXpctTZUuBCylnXP0u-n5EIM4TCS_qGjO5NlmnoeYKhB3JxpCP1sp5m_4wjSfU87Z1necV-wAkFmQs5M4LK8MvoD_ROIZYW1NmLIjGRfZev7jbPmU7EZzyL8tTtOe7WlT0vwqA-lgFVjf4XuVsPt_AbCbFeI--Kl_nRvuLyTuOM9Xs12YOYn1ys8fazlmjNAnI1TIuDpMMnfsI34S9p5UQWIQHMYp7"/>
+</div>
+</div>
+</header>
+<!-- Main Workspace Area -->
+<main class="ml-sidebar-width mt-[40px] flex-1 overflow-y-auto p-gutter pb-40 h-[calc(100vh-40px)] relative">
+<div class="max-w-[1400px] mx-auto w-full grid grid-cols-12 gap-gutter">
+<!-- Top Row: Overview Metrics -->
+<!-- Workspace Health -->
+<div class="col-span-12 md:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg p-4 flex flex-col gap-3 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#3b82f6]"></div>
+<div class="flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">monitor_heart</span>
+                        Workspace Health
+                    </h2>
+<span class="font-code-sm text-code-sm text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">Optimal</span>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<div>
+<p class="font-code-sm text-code-sm text-on-surface-variant">CPU Usage</p>
+<p class="font-code-md text-code-md text-on-surface">12.4%</p>
+</div>
+<div>
+<p class="font-code-sm text-code-sm text-on-surface-variant">RAM</p>
+<p class="font-code-md text-code-md text-on-surface">4.2 GB</p>
+</div>
+</div>
+<div class="w-full h-1 bg-surface-variant rounded-full mt-1 overflow-hidden">
+<div class="h-full bg-[#3b82f6] w-[24%]"></div>
+</div>
+</div>
+<!-- Git Status -->
+<div class="col-span-12 md:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg p-4 flex flex-col gap-3 relative">
+<div class="flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">mobile_wrench</span>
+                        Git Status
+                    </h2>
+<span class="font-code-sm text-code-sm text-[#f59e0b] bg-[#f59e0b]/10 px-2 py-0.5 rounded">4 Uncommitted</span>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-[18px] text-primary">commit</span>
+<p class="font-code-md text-code-md text-on-surface">Branch: <span class="text-primary">main</span></p>
+</div>
+<div class="flex items-center gap-2 mt-auto">
+<button class="bg-surface-variant hover:bg-outline-variant text-on-surface font-label-sm text-label-sm px-3 py-1.5 rounded transition-colors flex-1 text-center border border-outline-variant">Commit All</button>
+<button class="bg-transparent hover:bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1.5 rounded transition-colors flex-1 text-center border border-outline-variant">Stash</button>
+</div>
+</div>
+<!-- Connected MCP Servers -->
+<div class="col-span-12 md:col-span-4 bg-surface-container-low border border-outline-variant rounded-lg p-4 flex flex-col gap-3 relative">
+<div class="flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">dns</span>
+                        MCP Servers
+                    </h2>
+<span class="font-code-sm text-code-sm text-on-surface bg-surface-variant px-2 py-0.5 rounded border border-outline-variant">2 Active</span>
+</div>
+<div class="flex flex-col gap-2 mt-2">
+<div class="flex items-center justify-between p-2 rounded bg-surface border border-outline-variant">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+<span class="font-code-sm text-code-sm text-on-surface">PostgreSQL Data</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-on-surface">settings</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded bg-surface border border-outline-variant">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+<span class="font-code-sm text-code-sm text-on-surface">AWS CLI Agent</span>
+</div>
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant cursor-pointer hover:text-on-surface">settings</span>
+</div>
+</div>
+</div>
+<!-- Middle Row: Active Tasks & Terminal -->
+<!-- Active Agent Tasks -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col overflow-hidden Z-1">
+<div class="p-3 border-b border-outline-variant bg-[#1c2136]/30 flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-on-surface uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">memory</span>
+                        Active Agent Tasks
+                    </h2>
+<button class="text-primary hover:text-[#3b82f6] font-label-sm text-label-sm flex items-center gap-1 transition-colors">
+                        View All <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+<div class="flex flex-col">
+<!-- Task Row 1 -->
+<div class="flex items-center justify-between p-3 border-b border-outline-variant/50 hover:bg-surface-variant/50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-[#3b82f6]/10 border border-[#3b82f6]/30 flex items-center justify-center text-[#3b82f6]">
+<span class="material-symbols-outlined text-[18px] animate-spin" style="animation-duration: 3s;">sync</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Refactor AuthModule Core</p>
+<p class="font-code-sm text-code-sm text-on-surface-variant">Task #402 • Modifying src/core/auth.ts</p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="font-code-sm text-code-sm text-[#3b82f6] bg-[#3b82f6]/10 px-2 py-0.5 rounded">Running</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">12m elapsed</span>
+</div>
+</div>
+<!-- Task Row 2 -->
+<div class="flex items-center justify-between p-3 border-b border-outline-variant/50 hover:bg-surface-variant/50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-variant border border-outline-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">hourglass_empty</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-medium">Generate Unit Tests for Utility Classes</p>
+<p class="font-code-sm text-code-sm text-on-surface-variant">Task #403 • Waiting for #402</p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="font-code-sm text-code-sm text-on-surface-variant bg-surface-variant px-2 py-0.5 rounded">Queued</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">-</span>
+</div>
+</div>
+<!-- Task Row 3 -->
+<div class="flex items-center justify-between p-3 hover:bg-surface-variant/50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-[#10b981]/10 border border-[#10b981]/30 flex items-center justify-center text-[#10b981]">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-medium opacity-80 line-through">Update Dependencies</p>
+<p class="font-code-sm text-code-sm text-on-surface-variant">Task #401 • Completed</p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="font-code-sm text-code-sm text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">Done</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">2m ago</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Terminal Commands -->
+<div class="col-span-12 lg:col-span-4 bg-[#05060b] border border-outline-variant rounded-lg flex flex-col overflow-hidden relative">
+<div class="p-2 border-b border-outline-variant bg-surface-dim flex items-center justify-between">
+<h2 class="font-code-sm text-code-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+                        zsh - recent
+                    </h2>
+</div>
+<div class="p-3 font-code-sm text-code-sm text-on-surface-variant flex-1 overflow-y-auto leading-relaxed">
+<div class="text-[#10b981] opacity-70">~/<span class="text-primary">antigravity-cli</span> $</div>
+<div class="text-on-surface mb-2">pnpm run dev</div>
+<div class="text-[#10b981] opacity-70 mt-2">~/<span class="text-primary">antigravity-cli</span> $</div>
+<div class="text-on-surface mb-2">git checkout -b feat/ai-refactor</div>
+<div class="text-[#10b981] opacity-70 mt-2">~/<span class="text-primary">antigravity-cli</span> $</div>
+<div class="text-on-surface">npm run test:e2e</div>
+<div class="text-[#f59e0b] opacity-80 mt-1">WARN: 2 specs failed.</div>
+<div class="text-[#10b981] opacity-70 mt-4 flex items-center gap-2">
+                        ~/<span class="text-primary">antigravity-cli</span> $ <span class="w-2 h-4 bg-primary animate-pulse"></span>
+</div>
+</div>
+</div>
+<!-- Bottom Row: Recent Conversations -->
+<div class="col-span-12 bg-surface-container-low border border-outline-variant rounded-lg flex flex-col Z-1">
+<div class="p-4 border-b border-outline-variant flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">forum</span>
+                        Recent Conversations
+                    </h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-outline-variant">
+<!-- Conversation 1 -->
+<div class="p-4 hover:bg-surface-variant/30 transition-colors cursor-pointer flex flex-col gap-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary">chat_bubble</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">1 hr ago</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-surface font-medium line-clamp-1">Explain the authentication flow in core</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant line-clamp-2 leading-relaxed">The authentication flow uses a JWT based approach with refresh tokens handled via HttpOnly cookies...</p>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<span class="font-code-sm text-code-sm bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded border border-outline-variant/50">#architecture</span>
+</div>
+</div>
+<!-- Conversation 2 -->
+<div class="p-4 hover:bg-surface-variant/30 transition-colors cursor-pointer flex flex-col gap-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary">chat_bubble</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">Yesterday</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-surface font-medium line-clamp-1">Debug API latency spikes on /users endpoint</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant line-clamp-2 leading-relaxed">Looking at the trace, the bottleneck appears to be the nested N+1 query in the User serializer resolving permissions...</p>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<span class="font-code-sm text-code-sm bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded border border-outline-variant/50">#debugging</span>
+<span class="font-code-sm text-code-sm bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded border border-outline-variant/50">#database</span>
+</div>
+</div>
+<!-- Conversation 3 -->
+<div class="p-4 hover:bg-surface-variant/30 transition-colors cursor-pointer flex flex-col gap-2">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary">chat_bubble</span>
+<span class="font-code-sm text-code-sm text-on-surface-variant">2 days ago</span>
+</div>
+<h3 class="font-body-md text-body-md text-on-surface font-medium line-clamp-1">Generate setup script for local docker</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant line-clamp-2 leading-relaxed">I've created a docker-compose.yml and a bash setup script that initializes the database and seeds minimal data...</p>
+<div class="flex items-center gap-2 mt-auto pt-2">
+<span class="font-code-sm text-code-sm bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded border border-outline-variant/50">#devops</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Quick Task Composer (Floating Centered) -->
+<div class="fixed bottom-6 left-[calc(240px+(100%-240px)/2)] -translate-x-1/2 w-[90%] max-w-[720px] bg-[#1c2136] shadow-ambient border border-[#1e293b] rounded-xl z-50 flex flex-col overflow-hidden">
+<!-- Starter Chips -->
+<div class="px-4 py-3 flex items-center gap-2 border-b border-[#1e293b]/50 overflow-x-auto no-scrollbar">
+<button class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low hover:bg-surface-variant hover:border-primary transition-colors text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-primary">menu_book</span>
+                Explain codebase
+            </button>
+<button class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low hover:bg-surface-variant hover:border-primary transition-colors text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-[#f59e0b]">bug_report</span>
+                Fix bug
+            </button>
+<button class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low hover:bg-surface-variant hover:border-primary transition-colors text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-[#10b981]">science</span>
+                Run tests
+            </button>
+</div>
+<!-- Input Area -->
+<div class="p-2 flex items-end gap-2 bg-[#121624]">
+<div class="flex-1 bg-[#05060b] border border-[#1e293b] rounded-lg relative flex items-center min-h-[56px] focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">magic_button</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-on-surface font-body-md text-body-md pl-10 pr-24 py-3 placeholder-on-surface-variant/50" placeholder="What do you want to build or change?" type="text"/>
+<!-- Keyboard Hint -->
+<div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none opacity-60">
+<kbd class="font-code-sm text-code-sm bg-surface-variant px-1.5 py-0.5 rounded border border-outline-variant">⌘</kbd>
+<kbd class="font-code-sm text-code-sm bg-surface-variant px-1.5 py-0.5 rounded border border-outline-variant">↵</kbd>
+</div>
+</div>
+<button class="w-[56px] h-[56px] shrink-0 bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded-lg flex items-center justify-center transition-colors shadow-lg">
+<span class="material-symbols-outlined icon-fill text-[24px]">send</span>
+</button>
+</div>
+</div>
+</body></html>

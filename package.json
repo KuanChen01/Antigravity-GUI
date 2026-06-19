@@ -1,0 +1,59 @@
+{
+  "name": "antigravity-gui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css",
+    "watch:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css --watch",
+    "start": "npm run build:css && electron .",
+    "dist": "npm run build:css && electron-builder --win",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "tailwindcss": "^4.3.1"
+  },
+  "build": {
+    "appId": "com.gemini.antigravity-gui",
+    "productName": "Antigravity",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "KuanChen01",
+        "repo": "Antigravity-GUI"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Antigravity",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "database-worker.js",
+      "src/**/*"
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

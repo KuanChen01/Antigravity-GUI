@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Antigravity CLI - Tools &amp; Extensions</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts (JetBrains Mono & Geist via standard sans mapping conceptually) -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<!-- Geist Font Alternative (Inter used for structural equivalence if Geist isn't universally loaded via standard CDN, but styling classes remain exact) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Fallback mapping for Geist if not present in environment, ensuring CSS variables work */
+        @font-face {
+            font-family: 'Geist';
+            src: local('Inter'), local('sans-serif');
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+    </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#e2e1ee",
+                    "surface-container-low": "#191b24",
+                    "background": "#11131b",
+                    "surface-tint": "#adc6ff",
+                    "surface-variant": "#33343e",
+                    "secondary": "#c0c1ff",
+                    "tertiary": "#bcc7de",
+                    "outline": "#8c909f",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "primary": "#adc6ff",
+                    "surface-container-lowest": "#0c0e16",
+                    "on-tertiary": "#263143",
+                    "on-primary-container": "#00285d",
+                    "secondary-fixed": "#e1e0ff",
+                    "on-primary-fixed-variant": "#004395",
+                    "surface": "#11131b",
+                    "on-error-container": "#ffdad6",
+                    "inverse-on-surface": "#2e3039",
+                    "primary-fixed-dim": "#adc6ff",
+                    "secondary-container": "#3131c0",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "surface-bright": "#373942",
+                    "on-primary": "#002e6a",
+                    "on-primary-fixed": "#001a42",
+                    "on-secondary": "#1000a9",
+                    "on-surface": "#e2e1ee",
+                    "error-container": "#93000a",
+                    "surface-dim": "#11131b",
+                    "tertiary-container": "#8691a7",
+                    "tertiary-fixed-dim": "#bcc7de",
+                    "on-error": "#690005",
+                    "primary-fixed": "#d8e2ff",
+                    "tertiary-fixed": "#d8e3fb",
+                    "surface-container-high": "#282a32",
+                    "on-secondary-fixed": "#07006c",
+                    "on-tertiary-fixed-variant": "#3c475a",
+                    "primary-container": "#4d8eff",
+                    "outline-variant": "#424754",
+                    "on-background": "#e2e1ee",
+                    "on-tertiary-container": "#1f2a3c",
+                    "on-secondary-container": "#b0b2ff",
+                    "surface-container": "#1d1f28",
+                    "on-tertiary-fixed": "#111c2d",
+                    "on-surface-variant": "#c2c6d6",
+                    "inverse-primary": "#005ac2",
+                    "surface-container-highest": "#33343e",
+                    "error": "#ffb4ab"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "sidebar-collapsed": "64px",
+                    "margin-mobile": "16px",
+                    "unit": "4px",
+                    "sidebar-width": "240px",
+                    "margin-desktop": "24px"
+            },
+            "fontFamily": {
+                    "code-md": ["JetBrains Mono"],
+                    "headline-md": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "label-sm": ["Geist"],
+                    "body-lg": ["Geist"],
+                    "code-sm": ["JetBrains Mono"],
+                    "body-md": ["Geist"]
+            },
+            "fontSize": {
+                    "code-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "code-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex selection:bg-primary-container selection:text-on-primary-container">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full py-4 z-50">
+<!-- Header / Brand -->
+<div class="px-4 mb-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A futuristic, high-contrast, minimalist tech avatar representing a user profile. Rendered in dark hues of navy blue and deep grey, with sharp electric blue highlights. The style is sleek, vector-like corporate modern, set against a solid dark background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkRGgVlebSaf-CkLJicXxdNpk3kKHBSJmEB2q9QJUDK2o081vZHlnMQIu2OU1pOBGmpHkYzRLPn3dNxFG5WNzWLnjH1O7yWn9KOtd5uOWTUACUv3TNhSxBy4EDQJPrF1lAT9zmn390sXFIvBAqHKGRjeemT1cNmQmraEZCQp9x4xUm6qGZCJe4iflqXpZH4bn02UD71Ssr9UB1G_4Z928CIkuRcJFFQcjaV4zek3FgPkkCkF9ZsRG3r0KSqnXiSwKGvtS_j_M7Krkm"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary !text-base !leading-tight">Antigravity CLI</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Pro Plan • Connected</span>
+</div>
+</div>
+</div>
+<!-- Primary Navigation -->
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<!-- New Task -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">add_box</span>
+                New Task
+            </a>
+<!-- Workspaces -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+                Workspaces
+            </a>
+<!-- Conversations -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+                Conversations
+            </a>
+<!-- Agents -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                Agents
+            </a>
+<!-- Changes -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">difference</span>
+                Changes
+            </a>
+<!-- Tools (ACTIVE STATE) -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT bg-secondary-container text-on-secondary-container border-l-4 border-primary scale-95 duration-75 transition-transform font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">build</span>
+                Tools
+            </a>
+<!-- Automations -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">auto_mode</span>
+                Automations
+            </a>
+<!-- Settings -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                Settings
+            </a>
+</div>
+<!-- Footer Actions -->
+<div class="px-2 mt-auto pt-4 border-t border-outline-variant space-y-1">
+<button class="w-full text-left px-3 py-2 mb-2 rounded-DEFAULT bg-surface-variant text-on-surface font-label-sm text-label-sm hover:bg-surface-bright transition-colors text-center border border-outline-variant">
+                Upgrade Plan
+            </button>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+                Account
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                Usage
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width flex-1 flex flex-col min-h-screen relative">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface-dim dark:bg-background h-10 fixed top-0 right-0 w-[calc(100%-theme(spacing.sidebar-width))] border-b border-outline-variant flex items-center justify-between px-gutter z-40 transition-opacity hover:opacity-80">
+<!-- Breadcrumbs / Left -->
+<div class="flex items-center gap-2 font-code-md text-code-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">folder</span>
+<span>main</span>
+<span class="text-outline">/</span>
+<span class="text-primary font-bold">Tools</span>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Planning Mode</span>
+<div class="w-px h-4 bg-outline-variant"></div>
+<span class="text-primary">Fast Mode</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<button class="hover:bg-surface-variant dark:hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">terminal</span></button>
+<button class="hover:bg-surface-variant dark:hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">security</span></button>
+<button class="hover:bg-surface-variant dark:hover:bg-surface-variant p-1 rounded transition-colors"><span class="material-symbols-outlined text-[18px]">keyboard_command_key</span></button>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="mt-10 p-margin-desktop flex-1 flex flex-col">
+<!-- Page Header -->
+<div class="mb-8">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Tools &amp; Extensions</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Manage external integrations, protocol servers, and local capabilities securely connected to your environment.</p>
+</div>
+<!-- Tabbed Interface -->
+<div class="border-b border-outline-variant mb-6">
+<nav class="flex gap-6 font-label-sm text-label-sm">
+<!-- Active Tab -->
+<a class="pb-3 border-b-2 border-primary text-primary px-1" href="#">MCP Servers</a>
+<!-- Inactive Tabs -->
+<a class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors px-1" href="#">Plugins</a>
+<a class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors px-1" href="#">Skills</a>
+<a class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors px-1" href="#">Hooks</a>
+</nav>
+</div>
+<!-- List Area: MCP Servers -->
+<div class="flex flex-col gap-unit">
+<!-- Item 1: Google Search -->
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center justify-between hover:border-outline transition-colors group">
+<div class="flex items-center gap-4 w-1/3">
+<div class="w-10 h-10 rounded-DEFAULT bg-surface-variant flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">travel_explore</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface font-medium">Google Search</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded uppercase tracking-wider">Local</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-start w-1/4 font-code-sm text-code-sm text-on-surface-variant">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[14px]">build</span>
+<span>12 available tools</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>Activity: 2m ago</span>
+</div>
+</div>
+<div class="flex items-center justify-end gap-6 w-1/3">
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-primary">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                            Connected
+                        </div>
+<button class="w-10 h-10 flex items-center justify-center rounded-DEFAULT border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group-hover:border-outline" title="Stop Server">
+<span class="material-symbols-outlined">stop</span>
+</button>
+</div>
+</div>
+<!-- Item 2: Filesystem -->
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center justify-between hover:border-outline transition-colors group">
+<div class="flex items-center gap-4 w-1/3">
+<div class="w-10 h-10 rounded-DEFAULT bg-surface-variant flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder_open</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface font-medium">Filesystem</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-1.5 py-0.5 rounded uppercase tracking-wider">Local</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-start w-1/4 font-code-sm text-code-sm text-on-surface-variant">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[14px]">build</span>
+<span>8 available tools</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>Activity: Just now</span>
+</div>
+</div>
+<div class="flex items-center justify-end gap-6 w-1/3">
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-primary">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                            Connected
+                        </div>
+<button class="w-10 h-10 flex items-center justify-center rounded-DEFAULT border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group-hover:border-outline" title="Stop Server">
+<span class="material-symbols-outlined">stop</span>
+</button>
+</div>
+</div>
+<!-- Item 3: Custom API -->
+<div class="bg-surface border border-outline-variant rounded-lg p-4 flex items-center justify-between hover:border-outline transition-colors group opacity-80 hover:opacity-100">
+<div class="flex items-center gap-4 w-1/3">
+<div class="w-10 h-10 rounded-DEFAULT bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">api</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface font-medium">Custom API</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-tertiary-container bg-tertiary px-1.5 py-0.5 rounded uppercase tracking-wider">Remote</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-start w-1/4 font-code-sm text-code-sm text-outline">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[14px]">build</span>
+<span>4 available tools</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>Activity: 14h ago</span>
+</div>
+</div>
+<div class="flex items-center justify-end gap-6 w-1/3">
+<div class="flex items-center gap-2 font-label-sm text-label-sm text-outline">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+                            Disconnected
+                        </div>
+<button class="w-10 h-10 flex items-center justify-center rounded-DEFAULT border border-outline-variant text-primary hover:bg-surface-variant transition-colors group-hover:border-outline" title="Start Server">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

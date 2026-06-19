@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Antigravity CLI - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#e2e1ee",
+                        "surface-container-low": "#191b24",
+                        "background": "#11131b",
+                        "surface-tint": "#adc6ff",
+                        "surface-variant": "#33343e",
+                        "secondary": "#c0c1ff",
+                        "tertiary": "#bcc7de",
+                        "outline": "#8c909f",
+                        "on-secondary-fixed-variant": "#2f2ebe",
+                        "primary": "#adc6ff",
+                        "surface-container-lowest": "#0c0e16",
+                        "on-tertiary": "#263143",
+                        "on-primary-container": "#00285d",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-primary-fixed-variant": "#004395",
+                        "surface": "#11131b",
+                        "on-error-container": "#ffdad6",
+                        "inverse-on-surface": "#2e3039",
+                        "primary-fixed-dim": "#adc6ff",
+                        "secondary-container": "#3131c0",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "surface-bright": "#373942",
+                        "on-primary": "#002e6a",
+                        "on-primary-fixed": "#001a42",
+                        "on-secondary": "#1000a9",
+                        "on-surface": "#e2e1ee",
+                        "error-container": "#93000a",
+                        "surface-dim": "#11131b",
+                        "tertiary-container": "#8691a7",
+                        "tertiary-fixed-dim": "#bcc7de",
+                        "on-error": "#690005",
+                        "primary-fixed": "#d8e2ff",
+                        "tertiary-fixed": "#d8e3fb",
+                        "surface-container-high": "#282a32",
+                        "on-secondary-fixed": "#07006c",
+                        "on-tertiary-fixed-variant": "#3c475a",
+                        "primary-container": "#4d8eff",
+                        "outline-variant": "#424754",
+                        "on-background": "#e2e1ee",
+                        "on-tertiary-container": "#1f2a3c",
+                        "on-secondary-container": "#b0b2ff",
+                        "surface-container": "#1d1f28",
+                        "on-tertiary-fixed": "#111c2d",
+                        "on-surface-variant": "#c2c6d6",
+                        "inverse-primary": "#005ac2",
+                        "surface-container-highest": "#33343e",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "sidebar-collapsed": "64px",
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "sidebar-width": "240px",
+                        "margin-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "code-md": ["JetBrains Mono"],
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "code-sm": ["JetBrains Mono"],
+                        "body-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "code-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "code-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-variant');
+            border-radius: theme('borderRadius.full');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline-variant');
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label:after {
+            transform: translateX(100%);
+            border-color: theme('colors.primary');
+        }
+        .toggle-label {
+            width: 36px;
+            height: 20px;
+            background-color: theme('colors.surface-variant');
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle-label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background-color: theme('colors.on-primary');
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Range Slider Styles */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: theme('colors.primary');
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 0 4px rgba(173, 198, 255, 0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: theme('colors.surface-variant');
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="antialiased overflow-hidden flex h-screen">
+<!-- SideNavBar (Predicted & Anchored) -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant w-sidebar-width h-screen fixed left-0 top-0 flex flex-col h-full py-4 z-50">
+<!-- Brand Header -->
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary font-bold">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">terminal</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary leading-tight">Antigravity CLI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Pro Plan • Connected</p>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex-1 overflow-y-auto px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">add_box</span>
+<span class="font-body-md text-body-md">New Task</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">grid_view</span>
+<span class="font-body-md text-body-md">Workspaces</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">forum</span>
+<span class="font-body-md text-body-md">Conversations</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">smart_toy</span>
+<span class="font-body-md text-body-md">Agents</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">difference</span>
+<span class="font-body-md text-body-md">Changes</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">build</span>
+<span class="font-body-md text-body-md">Tools</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">auto_mode</span>
+<span class="font-body-md text-body-md">Automations</span>
+</a>
+<!-- Active Tab: Settings -->
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-secondary-container text-on-secondary-container border-l-4 border-primary scale-95 duration-75" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-body-md text-body-md font-medium">Settings</span>
+</a>
+</div>
+<!-- CTA & Footer Tabs -->
+<div class="px-3 mt-auto space-y-2">
+<button class="w-full py-2 px-4 rounded bg-primary text-on-primary font-label-sm text-label-sm font-medium hover:bg-primary-container transition-colors mb-4">
+                Upgrade Plan
+            </button>
+<div class="border-t border-outline-variant pt-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">account_circle</span>
+<span class="font-body-md text-body-md">Account</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-on-surface">analytics</span>
+<span class="font-body-md text-body-md">Usage</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Workspace Area -->
+<div class="ml-sidebar-width flex-1 flex flex-col h-screen relative">
+<!-- TopNavBar (Predicted & Anchored) -->
+<header class="bg-surface-dim dark:bg-background border-b border-outline-variant h-10 fixed top-0 right-0 w-[calc(100%-theme(spacing.sidebar-width))] flex items-center justify-between px-gutter w-full z-40">
+<!-- Left: Breadcrumbs -->
+<div class="flex items-center gap-2 font-code-md text-code-md text-on-surface-variant">
+<span class="hover:text-on-surface cursor-pointer transition-colors">main</span>
+<span class="text-outline-variant">/</span>
+<span class="hover:text-on-surface cursor-pointer transition-colors">feat/ai-refactor</span>
+<span class="text-outline-variant">/</span>
+<span class="text-primary font-bold cursor-pointer opacity-80 transition-opacity">/src/core</span>
+</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1 border-r border-outline-variant pr-4">
+<button class="text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant p-1.5 rounded transition-colors" title="Terminal">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant p-1.5 rounded transition-colors" title="Security">
+<span class="material-symbols-outlined text-[18px]">security</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-variant dark:hover:bg-surface-variant p-1.5 rounded transition-colors" title="Command Palette">
+<span class="material-symbols-outlined text-[18px]">keyboard_command_key</span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface font-label-sm text-label-sm hover:bg-surface-variant transition-colors">
+                        Fast Mode
+                    </button>
+<button class="px-3 py-1 rounded bg-primary text-on-primary font-label-sm text-label-sm font-medium hover:opacity-90 transition-opacity">
+                        Planning Mode
+                    </button>
+</div>
+<div class="w-6 h-6 rounded-full bg-surface-variant overflow-hidden border border-outline-variant ml-2 cursor-pointer hover:opacity-80 transition-opacity">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A small, professional user avatar portrait featuring a subtle dark background and dramatic side lighting, optimized for a dark mode interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7aBM419za1acfrI-9p4riVfiSyri6Z28c3ejBIR8Lh4iCfpZnpBselnGLZUJgJ_egbPE06NCZKgQrFANM8WG1lk2cDDlcz5ijky2EML8iiuvBkPsmgGWinEBNLYn34CFO5kuGbsD9vcD0NBP-kaHvUPY0q5K5YGQvdTpD-I9q8nc1q9nQM3tjQ9YNUtCmJNV2ygk54dvaznCgVgVoySnohku64WLy6Y3E0Wl8fMqe72zoWdaNG-YHEyQ8oUWb1cE_Zu2U3nHjGw2m"/>
+</div>
+</div>
+</header>
+<!-- Page Content: Settings -->
+<main class="mt-10 flex-1 overflow-y-auto p-margin-desktop bg-background">
+<div class="max-w-5xl mx-auto h-full flex flex-col">
+<!-- Page Header -->
+<div class="mb-8 border-b border-outline-variant pb-6">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Configuration</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage global preferences and core system behavior.</p>
+</div>
+<!-- Two-Column Layout -->
+<div class="flex flex-1 gap-8">
+<!-- Left Column: Categories Navigation -->
+<aside class="w-64 flex-shrink-0">
+<nav class="space-y-1">
+<button class="w-full text-left px-3 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors flex items-center justify-between group">
+<span>Models</span>
+<span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="w-full text-left px-3 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors flex items-center justify-between group">
+<span>Permissions</span>
+<span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="w-full text-left px-3 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors flex items-center justify-between group">
+<span>Sandbox</span>
+<span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<!-- Active Category -->
+<button class="w-full text-left px-3 py-2 rounded-md font-label-sm text-label-sm bg-surface-variant text-primary font-medium flex items-center justify-between">
+<span>Appearance</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+<button class="w-full text-left px-3 py-2 rounded-md font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-variant hover:text-on-surface transition-colors flex items-center justify-between group">
+<span>Keybindings</span>
+<span class="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</nav>
+</aside>
+<!-- Right Column: Settings Content (General Settings Mixed as requested in prompt) -->
+<div class="flex-1 space-y-8 pb-12">
+<!-- Models Section -->
+<section class="p-6 rounded-lg bg-surface border border-outline-variant">
+<h3 class="font-headline-md text-[18px] font-semibold text-on-surface mb-4">Core Model Configuration</h3>
+<div class="space-y-6">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-2">Default Model</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border border-outline-variant text-on-surface font-body-md text-body-md rounded px-3 py-2 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+<option value="gpt-4">GPT-4 Turbo (Default)</option>
+<option value="gpt-3.5">GPT-3.5 Fast</option>
+<option value="claude-3">Claude 3 Opus</option>
+<option value="local">Local LLaMA 3</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant mt-1.5">Select the primary model used for general tasks and planning mode.</p>
+</div>
+<div class="flex items-center justify-between py-2 border-t border-outline-variant/50">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface">Fast Mode Autopilot</div>
+<div class="font-body-md text-[12px] text-on-surface-variant">Automatically switch to a faster, smaller model for trivial refactoring tasks.</div>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 opacity-0" id="fast-mode-toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-5 rounded-full bg-surface-variant cursor-pointer" for="fast-mode-toggle"></label>
+</div>
+</div>
+</div>
+</section>
+<!-- Permissions Section -->
+<section class="p-6 rounded-lg bg-surface border border-outline-variant">
+<h3 class="font-headline-md text-[18px] font-semibold text-on-surface mb-4">Execution Permissions</h3>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-3">System Access Level</label>
+<div class="grid grid-cols-2 gap-4">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="permission_preset" type="radio" value="review"/>
+<div class="p-4 rounded border border-outline-variant bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-tint/5 hover:border-outline transition-colors">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[18px] text-primary">gavel</span>
+<span class="font-label-sm text-label-sm text-on-surface">Request Review</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant">Agent will pause and wait for explicit confirmation before executing terminal commands or file modifications.</p>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="permission_preset" type="radio" value="proceed"/>
+<div class="p-4 rounded border border-outline-variant bg-surface-container-low peer-checked:border-error peer-checked:bg-error-container/10 hover:border-outline transition-colors">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[18px] text-error">warning</span>
+<span class="font-label-sm text-label-sm text-on-surface">Always Proceed</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant">Agent has full autonomy to execute commands. Recommended only within sandboxed environments.</p>
+</div>
+</label>
+</div>
+</div>
+</section>
+<!-- Appearance Section -->
+<section class="p-6 rounded-lg bg-surface border border-outline-variant">
+<h3 class="font-headline-md text-[18px] font-semibold text-on-surface mb-4">Editor &amp; Workspace Appearance</h3>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between mb-2">
+<label class="block font-label-sm text-label-sm text-on-surface">Editor Font Size</label>
+<span class="font-code-md text-[12px] text-primary" id="fontSizeValue">13px</span>
+</div>
+<input class="w-full" max="24" min="10" oninput="document.getElementById('fontSizeValue').innerText = this.value + 'px'" type="range" value="13"/>
+<div class="flex justify-between font-code-md text-[10px] text-on-surface-variant mt-1">
+<span>Small (10px)</span>
+<span>Large (24px)</span>
+</div>
+<!-- Preview Block -->
+<div class="mt-4 p-4 rounded bg-background border border-outline-variant font-code-md text-code-md text-on-surface-variant overflow-x-auto">
+<span class="text-tertiary">function</span> <span class="text-primary">initializeWorkspace</span>(config) {<br/>
+                                          <span class="text-tertiary">const</span> theme = config.theme || <span class="text-[#a3defe]">'dark'</span>;<br/>
+                                          <span class="text-secondary">console</span>.log(<span class="text-[#a3defe]">\`Setting up \${theme} workspace\`</span>);<br/>
+                                        }
+                                    </div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-2">Workspace Theme</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border border-outline-variant text-on-surface font-body-md text-body-md rounded px-3 py-2 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+<option selected="" value="antigravity-dark">Antigravity Dark (Default)</option>
+<option value="deep-space">Deep Space Obsidian</option>
+<option value="nord">Nordic Calm</option>
+<option value="high-contrast">High Contrast Terminal</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Save Action -->
+<div class="flex justify-end gap-3 pt-4">
+<button class="px-4 py-2 rounded border border-outline-variant text-on-surface font-label-sm text-label-sm hover:bg-surface-variant transition-colors">
+                                Discard Changes
+                            </button>
+<button class="px-4 py-2 rounded bg-primary text-on-primary font-label-sm text-label-sm font-medium hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(173,198,255,0.2)]">
+                                Apply Configuration
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
