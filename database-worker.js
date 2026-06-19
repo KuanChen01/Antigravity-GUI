@@ -237,15 +237,14 @@ function listConversations() {
         }
       } catch (e) {}
       
-      // Fallback to loadMetadata cache
-      if (workspace === 'Unknown Workspace' || workspaces.length === 0) {
-        for (const [wsPath, pId] of Object.entries(projects)) {
-          if (lastConversations[wsPath] === id) {
+      // Merge with loadMetadata cache (always include cached workspaces for this conversation)
+      for (const [wsPath, convId] of Object.entries(lastConversations)) {
+        if (convId === id) {
+          if (workspace === 'Unknown Workspace') {
             workspace = wsPath;
-            if (!workspaces.includes(wsPath)) {
-              workspaces.push(wsPath);
-            }
-            break;
+          }
+          if (!workspaces.includes(wsPath)) {
+            workspaces.push(wsPath);
           }
         }
       }

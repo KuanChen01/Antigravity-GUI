@@ -579,9 +579,9 @@ async function initConversationView() {
       const filtered = activeWorkspace 
         ? allConvs.filter(c => {
             if (Array.isArray(c.workspaces)) {
-              return c.workspaces.includes(activeWorkspace);
+              return c.workspaces.some(ws => isSamePath(ws, activeWorkspace));
             }
-            return c.workspace === activeWorkspace;
+            return isSamePath(c.workspace, activeWorkspace);
           })
         : allConvs;
         
@@ -601,7 +601,7 @@ async function initConversationView() {
     convList.innerHTML = list.map(c => {
       const isSelected = c.id === currentConversationId;
       const selectClass = isSelected ? 'bg-surface-variant text-on-surface border-l-2 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high';
-      const itemWs = (Array.isArray(c.workspaces) && c.workspaces.includes(activeWorkspace))
+      const itemWs = (Array.isArray(c.workspaces) && c.workspaces.some(ws => isSamePath(ws, activeWorkspace)))
         ? activeWorkspace
         : c.workspace;
       const displayTitle = escapeHTML(itemWs && itemWs !== 'Unknown Workspace' ? pathBasename(itemWs) : (currentLanguage === 'zh' ? '新会话' : 'New Session'));
@@ -705,9 +705,9 @@ async function initConversationView() {
     const wsFiltered = activeWorkspace 
       ? allConvs.filter(c => {
           if (Array.isArray(c.workspaces)) {
-            return c.workspaces.includes(activeWorkspace);
+            return c.workspaces.some(ws => isSamePath(ws, activeWorkspace));
           }
-          return c.workspace === activeWorkspace;
+          return isSamePath(c.workspace, activeWorkspace);
         })
       : allConvs;
       
@@ -1180,7 +1180,7 @@ async function initWorkspaceView() {
             try {
               const res = await window.api.removeWorkspace(wsPath);
               if (res.success) {
-                if (activeWorkspace === wsPath) {
+                if (isSamePath(activeWorkspace, wsPath)) {
                   activeWorkspace = null;
                 }
                 await loadWorkspaces();
@@ -1683,6 +1683,13 @@ function formatDate(timestamp) {
 function pathBasename(pathStr) {
   const parts = pathStr.split(/[\\/]/);
   return parts[parts.length - 1] || pathStr;
+}
+
+function isSamePath(p1, p2) {
+  if (!p1 || !p2) return false;
+  const n1 = p1.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
+  const n2 = p2.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
+  return n1 === n2;
 }
 
 // Start App

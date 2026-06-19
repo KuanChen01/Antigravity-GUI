@@ -221,8 +221,17 @@ ipcMain.handle('config:remove-workspace', async (event, wsPath) => {
   try {
     if (fs.existsSync(projectsPath)) {
       const data = JSON.parse(fs.readFileSync(projectsPath, 'utf-8'));
-      if (data[wsPath]) {
-        delete data[wsPath];
+      const normalize = (p) => p.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
+      const target = normalize(wsPath);
+      let matchedKey = null;
+      for (const key of Object.keys(data)) {
+        if (normalize(key) === target) {
+          matchedKey = key;
+          break;
+        }
+      }
+      if (matchedKey) {
+        delete data[matchedKey];
         fs.writeFileSync(projectsPath, JSON.stringify(data, null, 2), 'utf-8');
         return { success: true };
       }
