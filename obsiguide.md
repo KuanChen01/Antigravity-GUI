@@ -119,15 +119,16 @@
 - Added dynamic listing, toggling, addition, and deletion of custom MCP servers from `mcp_config.json` in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js), [tools.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/tools.html), and [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
 - Fixed focus hijacking issue in Electron after native confirm/alert dialogs by forcing focus back to the window and prompt input box in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), and added auto-focus when clicking/loading a conversation.
 - Integrated `electron-builder` packaging and custom branding assets, setting up packaging config and scripts in [package.json](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/package.json), copying the custom app logo to [assets/icon.png](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/assets/icon.png), and successfully building the NSIS setup installer (.exe).
+- Fixed update button text collapse bug by refining selector to query specifically the text `span` instead of the first child icon `span` in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), localizing status text, and reclaiming focus post native alert dialog dismissal.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Distribute and run the built installer executable `dist/Antigravity Setup 1.0.0.exe` to verify installation flow, directory selection, and desktop shortcut generation.
+- Start the application, click "Check Updates" and verify the update text updates properly without layout breakage or font-size expansion, and that the cursor regains focus.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: packaging-and-installer-built
+- status: update-button-layout-fixed
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
