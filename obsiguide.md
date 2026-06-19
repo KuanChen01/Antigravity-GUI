@@ -118,15 +118,16 @@
 - Extracted workspace paths directly from each conversation's SQLite database table trajectory_metadata_blob in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), and implemented workspace-specific conversation list filtering and search in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
 - Added dynamic listing, toggling, addition, and deletion of custom MCP servers from `mcp_config.json` in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js), [tools.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/tools.html), and [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
 - Fixed focus hijacking issue in Electron after native confirm/alert dialogs by forcing focus back to the window and prompt input box in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), and added auto-focus when clicking/loading a conversation.
+- Integrated `electron-builder` packaging and custom branding assets, setting up packaging config and scripts in [package.json](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/package.json), copying the custom app logo to [assets/icon.png](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/assets/icon.png), and successfully building the NSIS setup installer (.exe).
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application to verify that the conversation view works flawlessly, focusing the input box and maintaining focus after deleting a conversation.
+- Distribute and run the built installer executable `dist/Antigravity Setup 1.0.0.exe` to verify installation flow, directory selection, and desktop shortcut generation.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: conversation-deletion-focus-fix-implemented
+- status: packaging-and-installer-built
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
