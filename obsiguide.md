@@ -117,15 +117,16 @@
 - Fixed Windows file lock issue in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) by wrapping DatabaseSync calls in try-finally to ensure connections are closed, and tracked/terminated active runs in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) before deleting database files.
 - Extracted workspace paths directly from each conversation's SQLite database table trajectory_metadata_blob in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), and implemented workspace-specific conversation list filtering and search in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
 - Added dynamic listing, toggling, addition, and deletion of custom MCP servers from `mcp_config.json` in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js), [tools.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/tools.html), and [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
+- Fixed focus hijacking issue in Electron after native confirm/alert dialogs by forcing focus back to the window and prompt input box in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), and added auto-focus when clicking/loading a conversation.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application to verify that both `stitch` (as an installed plugin extension) and `agentmem` (as a custom MCP server) display correctly on the Tools page.
+- Start the application to verify that the conversation view works flawlessly, focusing the input box and maintaining focus after deleting a conversation.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: custom-mcp-servers-integration-implemented
+- status: conversation-deletion-focus-fix-implemented
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 

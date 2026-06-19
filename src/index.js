@@ -421,7 +421,12 @@ async function initConversationView() {
           ? '确定要永久删除此会话吗？此操作无法撤销。' 
           : 'Are you sure you want to permanently delete this conversation? This action cannot be undone.';
         
-        if (confirm(confirmMsg)) {
+        const confirmed = confirm(confirmMsg);
+        // Restore focus to window and input box to prevent Electron focus loss after native confirm
+        window.focus();
+        promptInput.focus();
+        
+        if (confirmed) {
           try {
             const res = await window.api.deleteConversation(id);
             if (res.success) {
@@ -445,9 +450,13 @@ async function initConversationView() {
               loadConversations();
             } else {
               alert(currentLanguage === 'zh' ? `删除失败: ${res.error}` : `Delete failed: ${res.error}`);
+              window.focus();
+              promptInput.focus();
             }
           } catch (err) {
             alert(currentLanguage === 'zh' ? `删除出错: ${err.message}` : `Delete error: ${err.message}`);
+            window.focus();
+            promptInput.focus();
           }
         }
       });
@@ -479,6 +488,7 @@ async function initConversationView() {
     try {
       const details = await window.api.getConversationDetails(id);
       renderMessages(details.steps);
+      promptInput.focus();
     } catch (e) {
       chatMessages.innerHTML = `<div class="p-6 text-error">Failed to load conversation: ${e.message}</div>`;
     }
