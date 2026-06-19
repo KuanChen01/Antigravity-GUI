@@ -176,6 +176,25 @@ ipcMain.handle('config:add-workspace', async (event, wsPath) => {
   });
 });
 
+ipcMain.handle('config:remove-workspace', async (event, wsPath) => {
+  const projectsPath = path.join(getCliDir(), 'cache', 'projects.json');
+  try {
+    if (fs.existsSync(projectsPath)) {
+      const data = JSON.parse(fs.readFileSync(projectsPath, 'utf-8'));
+      if (data[wsPath]) {
+        delete data[wsPath];
+        fs.writeFileSync(projectsPath, JSON.stringify(data, null, 2), 'utf-8');
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'Workspace not found in registered cache.' };
+  } catch (e) {
+    console.error("Failed to remove workspace:", e);
+    return { success: false, error: e.message };
+  }
+});
+
+
 ipcMain.handle('config:get-mcp-config', async () => {
   const mcpConfigPath = path.join(getCliDir(), 'mcp_config.json');
   try {

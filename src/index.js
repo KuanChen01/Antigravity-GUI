@@ -342,9 +342,16 @@ async function initConversationView() {
         const firstWithWs = allConvs.find(c => c.workspace && c.workspace !== 'Unknown Workspace');
         if (firstWithWs) {
           activeWorkspace = firstWithWs.workspace;
-          activeWsLabel.textContent = activeWorkspace;
-          currentWsLabel.textContent = activeWorkspace;
         }
+      }
+      
+      // Make sure labels reflect active workspace state
+      if (activeWorkspace) {
+        if (activeWsLabel) activeWsLabel.textContent = activeWorkspace;
+        if (currentWsLabel) currentWsLabel.textContent = activeWorkspace;
+      } else {
+        if (activeWsLabel) activeWsLabel.textContent = currentLanguage === 'zh' ? '未选择工作区' : 'None';
+        if (currentWsLabel) currentWsLabel.textContent = currentLanguage === 'zh' ? '无活跃会话' : 'No Active Session';
       }
       
       // Filter list to only show conversations in the active workspace
@@ -819,6 +826,8 @@ async function initWorkspaceView() {
       }
       
       const selectBtnLabel = currentLanguage === 'zh' ? '选择' : 'Select';
+      const removeBtnTitle = currentLanguage === 'zh' ? '删除工作区' : 'Remove Workspace';
+      
       cardsContainer.innerHTML = paths.map(p => `
         <div class="bg-surface-container border border-outline-variant p-4 rounded-lg flex items-center justify-between hover:border-primary transition-colors">
           <div class="flex items-center gap-3 min-w-0">
@@ -828,7 +837,12 @@ async function initWorkspaceView() {
               <p class="text-[11px] text-on-surface-variant font-code-sm truncate max-w-sm">${p}</p>
             </div>
           </div>
-          <button data-path="${p}" class="select-ws-btn px-3 py-1 bg-surface-variant text-on-surface-variant rounded hover:bg-surface-container-high transition-colors font-label-sm text-label-sm shrink-0">${selectBtnLabel}</button>
+          <div class="flex items-center gap-2 shrink-0">
+            <button data-path="${p}" class="select-ws-btn px-3 py-1 bg-surface-variant text-on-surface-variant rounded hover:bg-surface-container-high transition-colors font-label-sm text-label-sm">${selectBtnLabel}</button>
+            <button data-path="${p}" class="delete-ws-btn p-1 text-on-surface-variant hover:text-error hover:bg-surface-variant rounded transition-colors flex items-center justify-center" title="${removeBtnTitle}">
+              <span class="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+          </div>
         </div>
       `).join('');
       
@@ -837,6 +851,38 @@ async function initWorkspaceView() {
         btn.addEventListener('click', () => {
           activeWorkspace = btn.dataset.path;
           navigateTo('conversation');
+        });
+      });
+
+      // Delete click
+      document.querySelectorAll('.delete-ws-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const wsPath = btn.dataset.path;
+          const confirmMsg = currentLanguage === 'zh'
+            ? `您确定要删除工作区 "${pathBasename(wsPath)}" 吗？此操作仅取消注册，不会删除磁盘上的物理文件夹。`
+            : `Are you sure you want to remove the workspace "${pathBasename(wsPath)}"? This only removes the registration and will not delete your local files.`;
+          
+          if (confirm(confirmMsg)) {
+            window.focus();
+            try {
+              const res = await window.api.removeWorkspace(wsPath);
+              if (res.success) {
+                if (activeWorkspace === wsPath) {
+                  activeWorkspace = null;
+                }
+                await loadWorkspaces();
+              } else {
+                alert(currentLanguage === 'zh' ? `删除工作区失败：${res.error}` : `Failed to remove workspace: ${res.error}`);
+                window.focus();
+              }
+            } catch (err) {
+              alert(`Error: ${err.message}`);
+              window.focus();
+            }
+          } else {
+            window.focus();
+          }
         });
       });
     } catch (e) {

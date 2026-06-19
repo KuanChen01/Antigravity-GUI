@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   saveSettings: (settings) => ipcRenderer.invoke('config:save-settings', settings),
   getWorkspaces: () => ipcRenderer.invoke('config:get-workspaces'),
   addWorkspace: (wsPath) => ipcRenderer.invoke('config:add-workspace', wsPath),
+  removeWorkspace: (wsPath) => ipcRenderer.invoke('config:remove-workspace', wsPath),
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
   
   // CLI Executions
