@@ -1,0 +1,78 @@
+<div class="flex h-full w-full overflow-hidden">
+  <!-- Conversation List (Left Panel) -->
+  <aside class="w-80 border-r border-outline-variant flex flex-col bg-surface-container-lowest shrink-0">
+    <div class="p-4 border-b border-outline-variant flex items-center justify-between shrink-0">
+      <span class="font-headline-md font-bold text-on-surface text-[14px]">Conversations</span>
+      <button id="new-chat-btn" class="p-1 hover:bg-surface-variant rounded text-primary transition-colors" title="New Task">
+        <span class="material-symbols-outlined text-[20px]">add_box</span>
+      </button>
+    </div>
+    <!-- Search -->
+    <div class="p-3 border-b border-outline-variant shrink-0">
+      <div class="flex items-center bg-surface-container p-2 rounded gap-2 text-on-surface-variant">
+        <span class="material-symbols-outlined text-[18px]">search</span>
+        <input type="text" id="conv-search" class="bg-transparent border-none focus:ring-0 p-0 text-body-md text-on-background placeholder-outline w-full" placeholder="Search conversations..."/>
+      </div>
+    </div>
+    <!-- Conversations List -->
+    <div class="flex-1 overflow-y-auto p-2 space-y-1" id="conv-list">
+      <div class="text-center py-8 text-on-surface-variant text-label-sm">Loading history...</div>
+    </div>
+  </aside>
+
+  <!-- Chat Workspace (Right Panel) -->
+  <section class="flex-1 flex flex-col bg-background min-w-0 h-full overflow-hidden">
+    <!-- Chat Top Action Bar -->
+    <div class="h-12 border-b border-outline-variant flex items-center justify-between px-6 shrink-0 bg-surface-container-low">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-[20px] text-primary">forum</span>
+        <span id="current-workspace-label" class="font-code-md text-code-md text-on-surface truncate max-w-md">No Active Session</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="planning-mode-btn" class="px-3 py-1 bg-primary text-on-primary text-label-sm font-medium rounded hover:opacity-90 transition-opacity">Planning Mode</button>
+        <button id="fast-mode-btn" class="px-3 py-1 bg-surface-variant text-on-surface-variant text-label-sm rounded border border-outline-variant hover:bg-surface-container-high transition-colors">Fast Mode</button>
+      </div>
+    </div>
+
+    <!-- Message Stream -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6" id="chat-messages">
+      <div class="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
+        <div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant">
+          <span class="material-symbols-outlined text-primary text-[28px]">terminal</span>
+        </div>
+        <h2 class="font-headline-md text-headline-md font-bold text-on-background">Welcome to Antigravity CLI</h2>
+        <p class="text-on-surface-variant text-body-md">
+          Start a new development session or resume a previous conversation. Run tasks, explore the codebase, edit files, and automate your workflow.
+        </p>
+      </div>
+    </div>
+
+    <!-- Active Step Progress Log (Invisible when idle) -->
+    <div id="step-progress-panel" class="border-t border-outline-variant bg-surface-container-lowest px-6 py-3 hidden max-h-40 overflow-y-auto">
+      <div class="flex items-center justify-between mb-2 shrink-0">
+        <div class="flex items-center gap-2 text-primary font-label-sm text-label-sm">
+          <span class="material-symbols-outlined animate-spin text-[16px]">rotate_right</span>
+          <span>Agent Running Steps...</span>
+        </div>
+        <button id="stop-agent-btn" class="text-error hover:underline font-label-sm text-label-sm">Cancel Task</button>
+      </div>
+      <div id="step-logs" class="font-code-sm text-code-sm text-on-surface-variant space-y-1">
+        <!-- Live step logs piped here -->
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="p-6 border-t border-outline-variant bg-surface-container-low shrink-0">
+      <div class="flex items-end bg-surface-container-lowest rounded-lg border border-outline-variant p-2 gap-3 relative focus-within:border-primary">
+        <textarea id="prompt-input" rows="2" class="flex-1 bg-transparent border-none text-body-md text-on-background placeholder-outline resize-none focus:ring-0 p-1 min-h-[40px] max-h-32" placeholder="Send a prompt to the agent (Shift+Enter for new line)..."></textarea>
+        <button id="send-prompt-btn" class="p-2 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center" disabled>
+          <span class="material-symbols-outlined text-[20px]">send</span>
+        </button>
+      </div>
+      <div class="flex items-center justify-between mt-2 font-label-sm text-label-sm text-on-surface-variant">
+        <span>Workspace: <strong id="active-ws-path" class="text-on-surface">None</strong></span>
+        <span>Press <kbd class="px-1.5 py-0.5 bg-surface-variant border border-outline-variant rounded font-code-sm text-code-sm">Enter</kbd> to run</span>
+      </div>
+    </div>
+  </section>
+</div>

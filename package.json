@@ -1,0 +1,20 @@
+{
+  "name": "antigravity-gui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css",
+    "watch:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css --watch",
+    "start": "npm run build:css && electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "tailwindcss": "^4.3.1"
+  }
+}

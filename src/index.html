@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Antigravity CLI Control Center</title>
+  
+  <!-- Local Tailwind CSS stylesheet compiled by build:css -->
+  <link href="./styles/output.css" rel="stylesheet"/>
+  
+  <!-- Fonts and Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen overflow-hidden flex font-body-md text-body-md">
+
+  <!-- SideNavBar -->
+  <nav class="bg-surface-container-low w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant flex flex-col py-4 z-50">
+    <!-- Header/Logo -->
+    <div class="px-4 mb-6 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden shrink-0 border border-outline-variant">
+        <span class="material-symbols-outlined text-primary text-[20px]">terminal</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <h1 class="font-headline-md font-bold text-primary truncate" style="font-size: 14px; line-height: 20px;">Antigravity CLI</h1>
+        <p id="auth-status-label" class="font-label-sm text-label-sm text-on-surface-variant truncate">Connecting...</p>
+      </div>
+    </div>
+    
+    <!-- Navigation Tabs -->
+    <div class="flex-1 overflow-y-auto px-2 space-y-1" id="nav-tabs">
+      <button data-view="conversation" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">forum</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Conversations</span>
+      </button>
+      
+      <button data-view="workspace_home" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">grid_view</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Workspaces</span>
+      </button>
+
+      <button data-view="subagents" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Agents</span>
+      </button>
+
+      <button data-view="changes" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">difference</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Changes</span>
+      </button>
+
+      <button data-view="tools" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">build</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Tools</span>
+      </button>
+
+      <button data-view="settings" class="nav-tab w-full flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group">
+        <span class="material-symbols-outlined text-[20px]">settings</span>
+        <span class="font-body-md text-body-md group-hover:scale-95 duration-75">Settings</span>
+      </button>
+    </div>
+    
+    <!-- Footer -->
+    <div class="px-4 mt-auto space-y-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant">
+          <span class="material-symbols-outlined text-[18px]">account_circle</span>
+          <span id="user-plan-label" class="font-label-sm text-label-sm truncate">Developer</span>
+        </div>
+        <button id="check-updates-btn" class="w-full flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
+          <span class="material-symbols-outlined text-[18px]">update</span>
+          <span class="font-label-sm text-label-sm">Check Updates</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- App Main Content area -->
+  <main id="main-content" class="flex-1 ml-[theme(spacing.sidebar-width)] h-screen overflow-hidden flex flex-col relative">
+    <!-- TopNavBar -->
+    <header class="bg-surface-dim text-primary h-10 border-b border-outline-variant flex items-center justify-between px-gutter shrink-0">
+      <div class="flex items-center gap-4">
+        <div class="font-headline-md text-headline-md font-black text-on-surface mr-2 tracking-tight flex items-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">terminal</span>
+          <span class="text-sm" id="view-title">Control Center</span>
+        </div>
+        <div class="h-4 w-px bg-outline-variant mx-2"></div>
+        <div id="breadcrumb" class="font-code-md text-code-md text-on-surface-variant">
+          <!-- Populated by view controllers -->
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div id="connection-status-dot" class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm" title="Disconnected"></div>
+      </div>
+    </header>
+
+    <!-- View Container -->
+    <div id="view-container" class="flex-1 overflow-hidden relative">
+      <!-- Dynamic views loaded here -->
+    </div>
+  </main>
+
+  <!-- Interactive Permission Approval Overlay Modal -->
+  <div id="permission-overlay" class="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center hidden">
+    <div class="bg-surface-container-high rounded-lg border border-outline-variant max-w-lg w-full overflow-hidden shadow-ambient m-4">
+      <div class="bg-error-container/10 px-6 py-4 border-b border-outline-variant flex items-center gap-3">
+        <span class="material-symbols-outlined text-error text-[24px]">security</span>
+        <h3 class="font-headline-md text-headline-md text-on-background font-bold" style="font-size: 18px;">Tool Execution Permission Required</h3>
+      </div>
+      <div class="px-6 py-4 space-y-4">
+        <p class="text-on-surface-variant text-body-md" id="permission-description">
+          An agent is attempting to execute a tool. Please review and approve this action.
+        </p>
+        <pre class="bg-surface-container-lowest p-4 rounded font-code-md text-code-md overflow-x-auto text-on-surface max-h-48" id="permission-details">
+          <!-- Raw stdout containing command info -->
+        </pre>
+      </div>
+      <div class="bg-surface-container px-6 py-3 border-t border-outline-variant flex justify-end gap-3">
+        <button id="deny-permission-btn" class="px-4 py-2 border border-outline-variant rounded hover:bg-surface-variant transition-colors font-label-sm text-label-sm">Deny</button>
+        <button id="approve-permission-btn" class="px-4 py-2 bg-primary text-on-primary font-medium rounded hover:opacity-90 transition-opacity font-label-sm text-label-sm">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Renderer Script -->
+  <script src="./index.js"></script>
+</body>
+</html>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Antigravity CLI - Diff &amp; Change Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#e2e1ee",
+                      "surface-container-low": "#191b24",
+                      "background": "#11131b",
+                      "surface-tint": "#adc6ff",
+                      "surface-variant": "#33343e",
+                      "secondary": "#c0c1ff",
+                      "tertiary": "#bcc7de",
+                      "outline": "#8c909f",
+                      "on-secondary-fixed-variant": "#2f2ebe",
+                      "primary": "#adc6ff",
+                      "surface-container-lowest": "#0c0e16",
+                      "on-tertiary": "#263143",
+                      "on-primary-container": "#00285d",
+                      "secondary-fixed": "#e1e0ff",
+                      "on-primary-fixed-variant": "#004395",
+                      "surface": "#11131b",
+                      "on-error-container": "#ffdad6",
+                      "inverse-on-surface": "#2e3039",
+                      "primary-fixed-dim": "#adc6ff",
+                      "secondary-container": "#3131c0",
+                      "secondary-fixed-dim": "#c0c1ff",
+                      "surface-bright": "#373942",
+                      "on-primary": "#002e6a",
+                      "on-primary-fixed": "#001a42",
+                      "on-secondary": "#1000a9",
+                      "on-surface": "#e2e1ee",
+                      "error-container": "#93000a",
+                      "surface-dim": "#11131b",
+                      "tertiary-container": "#8691a7",
+                      "tertiary-fixed-dim": "#bcc7de",
+                      "on-error": "#690005",
+                      "primary-fixed": "#d8e2ff",
+                      "tertiary-fixed": "#d8e3fb",
+                      "surface-container-high": "#282a32",
+                      "on-secondary-fixed": "#07006c",
+                      "on-tertiary-fixed-variant": "#3c475a",
+                      "primary-container": "#4d8eff",
+                      "outline-variant": "#424754",
+                      "on-background": "#e2e1ee",
+                      "on-tertiary-container": "#1f2a3c",
+                      "on-secondary-container": "#b0b2ff",
+                      "surface-container": "#1d1f28",
+                      "on-tertiary-fixed": "#111c2d",
+                      "on-surface-variant": "#c2c6d6",
+                      "inverse-primary": "#005ac2",
+                      "surface-container-highest": "#33343e",
+                      "error": "#ffb4ab"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "sidebar-collapsed": "64px",
+                      "margin-mobile": "16px",
+                      "unit": "4px",
+                      "sidebar-width": "240px",
+                      "margin-desktop": "24px"
+              },
+              "fontFamily": {
+                      "code-md": ["JetBrains Mono"],
+                      "headline-md": ["Geist"],
+                      "headline-lg": ["Geist"],
+                      "label-sm": ["Geist"],
+                      "body-lg": ["Geist"],
+                      "code-sm": ["JetBrains Mono"],
+                      "body-md": ["Geist"]
+              },
+              "fontSize": {
+                      "code-md": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-lg": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "code-sm": ["11px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+        }
+        /* Diff Specific Colors */
+        .diff-add { background-color: rgba(34, 197, 94, 0.1); }
+        .diff-remove { background-color: rgba(239, 68, 68, 0.1); }
+        .diff-add-text { color: #4ade80; }
+        .diff-remove-text { color: #f87171; }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex overflow-hidden font-body-md text-body-md">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full py-4 bg-surface-container-low w-sidebar-width h-screen fixed left-0 top-0 border-r border-outline-variant z-50">
+<div class="px-4 mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">terminal</span>
+                Antigravity CLI
+            </h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Pro Plan • Connected</p>
+</div>
+<nav class="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-hide">
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">add_box</span>
+                New Task
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+                Workspaces
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">forum</span>
+                Conversations
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                Agents
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md bg-secondary-container text-on-secondary-container border-l-4 border-primary scale-95 duration-75" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">difference</span>
+                Changes
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">build</span>
+                Tools
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">auto_mode</span>
+                Automations
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="px-4 mt-auto space-y-4">
+<button class="w-full py-2 bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface rounded font-label-sm text-label-sm transition-colors">
+                Upgrade Plan
+            </button>
+<div class="border-t border-outline-variant pt-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+                    Account
+                </a>
+<a class="flex items-center gap-3 px-3 py-2 rounded font-body-md text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+                    Usage
+                </a>
+</div>
+<div class="flex items-center gap-3 px-3">
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A small, stylized avatar image representing a developer profile. Clean, modern vector style with deep blue and electric cyan accents. Subtle futuristic aesthetic suitable for a high-end CLI tool dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9r9wu89cj92qtrgdQSKCxDpDiCYnIuQdiHtYfRRQNYodGOPcqrWI4bjhI1dG4Bxvp0ozSECS8f7pWU72gsiB572e-W6TxBgE8TT6Ve8A6mfohGBIYubyZ4YSU3sd2C1mbcDsQNJB5tmIQgur411b16lbT6dXdM0WvT9xa4vNjAGwidQkCy1Up_ZMGvDRfPAPlD45kQrWPCRilHe3ydAVs48xca5eL9DMDhXvSlcRabeGaMVTG1ii77a1zY2GQxed_YVwyoYxHdjH2"/>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col md:ml-[240px] h-screen w-full relative bg-background">
+<!-- TopNavBar -->
+<header class="h-10 fixed top-0 right-0 w-[calc(100%-240px)] bg-surface-dim flex items-center justify-between px-gutter z-40 border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 font-code-md text-code-md text-on-surface-variant">
+<span class="hover:text-primary transition-colors cursor-pointer">main</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary font-bold">feat/ai-refactor</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="hover:text-primary transition-colors cursor-pointer">/src/core</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 border border-outline-variant rounded bg-surface-container px-2 py-1">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-label-sm font-label-sm text-on-surface placeholder-on-surface-variant w-32 focus:w-48 transition-all p-0" placeholder="Search..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">security</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">keyboard_command_key</span>
+</button>
+</div>
+<div class="flex items-center gap-2 border-l border-outline-variant pl-4">
+<button class="px-3 py-1 bg-surface-variant hover:bg-surface-container-highest border border-outline-variant text-on-surface rounded font-label-sm text-label-sm transition-colors">
+                        Fast Mode
+                    </button>
+<button class="px-3 py-1 bg-primary hover:bg-primary-container text-on-primary rounded font-label-sm text-label-sm transition-colors font-medium">
+                        Planning Mode
+                    </button>
+</div>
+<img alt="User Avatar" class="w-7 h-7 rounded border border-outline-variant ml-2" data-alt="A professional looking avatar or profile picture for a software developer. Close up, modern lighting, slightly dark background to match a dark mode UI. High quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnZFshBr6xRw7GAVgnFr4LdH8xvFwBMC6aupiw37i5nw9P1JhV2JKY8pDL2Dw6ADQa8h3moNh4X3JH_qQIM7H5ipHcEKyMF8-thmv-tdO7td0Rcd3ZDYUi1KWzWnk25Uz3rKQM5KTIfJDwjjqsEZRqWNjtLhVtywZ93cEsq7TurWxGPmcRUmnwxi_F3_6CEiKM3t44Z2xHTE0DIcEqXq1DwmjwXykVLyzgO4Lfl4dcejagN65cJ4mG-a40h1H9qAOIL37fOrEZ-GDd"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 mt-10 p-gutter overflow-hidden flex flex-col gap-gutter">
+<!-- Summary Header -->
+<div class="flex-none bg-surface-container p-4 rounded border border-outline-variant flex items-center justify-between">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">merge_type</span>
+                        Review Changes
+                    </h2>
+<div class="flex items-center gap-3 mt-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">file_present</span> 2 files changed</span>
+<span class="flex items-center gap-1 text-[#4ade80]"><span class="material-symbols-outlined text-[14px]">check_circle</span> Tests passed</span>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-transparent border border-outline-variant text-on-surface hover:bg-surface-variant rounded font-label-sm text-label-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+                        Revise
+                    </button>
+<button class="px-4 py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded font-label-sm text-label-sm transition-colors font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check</span>
+                        Accept all
+                    </button>
+</div>
+</div>
+<!-- Agent Explanation -->
+<div class="flex-none bg-surface-container-low border border-primary/30 p-4 rounded-lg flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<div>
+<h3 class="font-label-sm text-label-sm text-primary uppercase tracking-wider mb-1">Agent Explanation</h3>
+<p class="font-body-md text-body-md text-on-surface">Updated JWT expiration to 24h for dev environment consistency. Also added missing error handling in token generation.</p>
+</div>
+</div>
+<!-- Diff Workspace -->
+<div class="flex-1 flex gap-gutter min-h-0">
+<!-- Left: File List -->
+<div class="w-64 flex-none bg-surface-container rounded border border-outline-variant flex flex-col overflow-hidden">
+<div class="p-3 border-b border-outline-variant bg-surface-dim font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">folder</span> Files
+                    </div>
+<ul class="flex-1 overflow-y-auto p-2 space-y-1">
+<li class="p-2 rounded bg-surface-variant border border-outline-variant text-on-surface font-code-md text-code-md flex items-center justify-between cursor-pointer">
+<span class="truncate">auth_service.ts</span>
+<span class="flex gap-1 text-[10px]">
+<span class="text-[#4ade80]">+4</span>
+<span class="text-[#f87171]">-2</span>
+</span>
+</li>
+<li class="p-2 rounded hover:bg-surface-container-highest text-on-surface-variant font-code-md text-code-md flex items-center justify-between cursor-pointer transition-colors">
+<span class="truncate">config/env.ts</span>
+<span class="flex gap-1 text-[10px]">
+<span class="text-[#4ade80]">+1</span>
+<span class="text-[#f87171]">-1</span>
+</span>
+</li>
+</ul>
+</div>
+<!-- Center: Unified Diff -->
+<div class="flex-1 bg-[#05060b] rounded border border-outline-variant flex flex-col overflow-hidden">
+<div class="h-10 flex-none border-b border-[#1e293b] flex items-center px-4 justify-between bg-surface-dim">
+<div class="font-code-md text-code-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">description</span>
+                            src/core/auth_service.ts
+                        </div>
+<div class="font-code-sm text-code-sm text-on-surface-variant flex gap-4">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#f87171]"></span> 2 removed</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#4ade80]"></span> 4 added</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-4 font-code-md text-code-md leading-relaxed selection:bg-primary-container/30">
+<!-- Unchanged -->
+<div class="flex hover:bg-surface-container-lowest transition-colors">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">42</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">42</div>
+<div class="pl-4 text-on-surface-variant whitespace-pre">  const payload = { userId: user.id, role: user.role };</div>
+</div>
+<div class="flex hover:bg-surface-container-lowest transition-colors">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">43</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">43</div>
+<div class="pl-4 text-on-surface-variant whitespace-pre"> </div>
+</div>
+<!-- Removed -->
+<div class="flex diff-remove">
+<div class="w-12 flex-none text-right pr-4 text-[#f87171] select-none">44</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">-</div>
+<div class="pl-4 diff-remove-text whitespace-pre"><span class="text-[#f87171]">-</span> <span class="line-through opacity-70">  const expiresIn = process.env.NODE_ENV === 'production' ? '1h' : '1h';</span></div>
+</div>
+<div class="flex diff-remove">
+<div class="w-12 flex-none text-right pr-4 text-[#f87171] select-none">45</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">-</div>
+<div class="pl-4 diff-remove-text whitespace-pre"><span class="text-[#f87171]">-</span> <span class="line-through opacity-70">  return jwt.sign(payload, SECRET_KEY, { expiresIn });</span></div>
+</div>
+<!-- Added -->
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">44</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>   const expiresIn = process.env.NODE_ENV === 'production' ? '1h' : '24h';</div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">45</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span> </div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">46</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>   try {</div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">47</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>     return jwt.sign(payload, SECRET_KEY, { expiresIn });</div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">48</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>   } catch (error) {</div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">49</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>     throw new TokenGenerationError('Failed to sign JWT', error);</div>
+</div>
+<div class="flex diff-add">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">-</div>
+<div class="w-12 flex-none text-right pr-4 text-[#4ade80] border-r border-[#1e293b] select-none">50</div>
+<div class="pl-4 diff-add-text whitespace-pre"><span class="text-[#4ade80]">+</span>   }</div>
+</div>
+<!-- Unchanged -->
+<div class="flex hover:bg-surface-container-lowest transition-colors mt-1">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">46</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">51</div>
+<div class="pl-4 text-on-surface-variant whitespace-pre">}</div>
+</div>
+<div class="flex hover:bg-surface-container-lowest transition-colors">
+<div class="w-12 flex-none text-right pr-4 text-outline-variant select-none">47</div>
+<div class="w-12 flex-none text-right pr-4 text-outline-variant border-r border-[#1e293b] select-none">52</div>
+<div class="pl-4 text-on-surface-variant whitespace-pre"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
