@@ -86,6 +86,7 @@
 - **Improved Preview/Prompt Extraction**: Swapped length-based candidates heuristic in type 14 parsing for the exact protobuf key path `tree[19][0].sub[2][0].string` to prevent file paths or workspace URIs from masking actual user prompts.
 - **MCP Server List Integration**: Added dynamic listing of custom MCP servers from `mcp_config.json` (such as `agentmem`), as the GUI previously only fetched dynamic plugins via `agy plugin list` and ignored custom servers. Added enable/disable toggling, deletion, and addition of custom servers directly from the Tools view.
 - **Implemented Registered Workspace Deletion**: Added removal support for registered workspace paths, enabling users to unregister paths in `projects.json` via GUI with confirmation dialogs.
+- **Packaged Release Executable**: Successfully compiled Tailwind CSS v4 and packaged the Electron desktop application using `electron-builder`, producing `dist/Antigravity Setup 1.0.0.exe` installer and `dist/win-unpacked/Antigravity.exe` standalone.
 
 ## Verified Commands
 <!-- AGENT-MAINTAINED: update during work -->
@@ -93,6 +94,7 @@
 - `agy.exe plugin list` (JSON outputs of installed plugins)
 - `agy.exe install` (Registry/path environment helper)
 - `npm run build:css` (Compiled Tailwind v4 output.css from input.css sources)
+- `npm run dist` (Packaged desktop application with installer and standalone binaries)
 - `git init`, `git add .`, `git commit`
 - `node -c database-worker.js`, `node -c src/index.js` (JavaScript syntax check)
 
@@ -114,13 +116,14 @@
 - Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, and implement clipboard paste and drag-and-drop image uploads with active workspace caching and cleanup.
 - Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, delete the legacy toggle buttons from the top action bar, and add the `#image-preview-container` layout block inside the prompt box.
 - Updated [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html) to replace the uncompiled `px-gutter` in the top navbar header with a standard Tailwind `px-6` utility to resolve layout alignment.
+- Generated installer `dist/Antigravity Setup 1.0.0.exe` and standalone program `dist/win-unpacked/Antigravity.exe` using `npm run dist`.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application (`npm start`), copy an image to the clipboard, and paste it into the prompt box (or drag and drop an image file) to verify that the thumbnail renders correctly and the image path is appended to the prompt on submit.
+- Launch the newly packaged installer `dist/Antigravity Setup 1.0.0.exe` to test full application features in a production-like environment.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: clipboard-paste-drag-drop-image-support-added
+- status: program-packaged-successfully
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
