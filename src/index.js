@@ -278,6 +278,16 @@ async function navigateTo(viewName) {
 }
 
 // --- CONVERSATION VIEW CONTROLLER ---
+const SLASH_COMMANDS = [
+  { name: '/planning', descEn: 'Planning Mode: detailed changes proposal', descZh: '规划模式：进行系统性方案设计及修改文件规划' },
+  { name: '/fast', descEn: 'Fast Mode: direct answers or minor code tweaks', descZh: '快速模式：直接回答简单问题或进行局部小调整' },
+  { name: '/goal', descEn: 'Goal Mode: autonomous agent running until goal reached', descZh: '目标模式：长任务后台自动运转并持续迭代直到达成' },
+  { name: '/grill-me', descEn: 'Grill-me Mode: start interview for design decisions', descZh: '对齐询问：与智能体进行交互式问答以拷问设计决策' },
+  { name: '/schedule', descEn: 'Schedule Task: run command on timer/cron jobs', descZh: '周期调度：创建定时器或配置 Cron 任务自动定期执行' },
+  { name: '/teamwork-preview', descEn: 'Teamwork Mode: simulate multiple agent teamwork', descZh: '团队预览：体验多个专家级智能体分工协同开发大功能' },
+  { name: '/learn', descEn: 'Learn Experience: persist conversation lessons & setup', descZh: '总结学习：持久化学习记录本次会话的命令、规则与配置' }
+];
+
 async function initConversationView() {
   const convList = document.getElementById('conv-list');
   const chatMessages = document.getElementById('chat-messages');
@@ -291,6 +301,7 @@ async function initConversationView() {
   const stepLogs = document.getElementById('step-logs');
   const stopAgentBtn = document.getElementById('stop-agent-btn');
   const convSearch = document.getElementById('conv-search');
+  const slashAutocomplete = document.getElementById('slash-autocomplete');
 
   let allConvs = [];
 
@@ -300,6 +311,110 @@ async function initConversationView() {
   }
   
   promptInput.addEventListener('input', updateInputState);
+
+  // Slash Commands Autocomplete Logic
+  let selectedSuggestionIndex = 0;
+  let filteredSuggestions = [];
+
+  function showAutocomplete(query) {
+    filteredSuggestions = SLASH_COMMANDS.filter(cmd => 
+      cmd.name.toLowerCase().startsWith(query.toLowerCase())
+    );
+
+    if (filteredSuggestions.length === 0) {
+      hideAutocomplete();
+      return;
+    }
+
+    selectedSuggestionIndex = 0;
+    renderSuggestions();
+    if (slashAutocomplete) slashAutocomplete.classList.remove('hidden');
+  }
+
+  function hideAutocomplete() {
+    if (slashAutocomplete) {
+      slashAutocomplete.classList.add('hidden');
+    }
+    filteredSuggestions = [];
+    selectedSuggestionIndex = 0;
+  }
+
+  function renderSuggestions() {
+    if (!slashAutocomplete) return;
+    slashAutocomplete.innerHTML = filteredSuggestions.map((cmd, idx) => {
+      const isActive = idx === selectedSuggestionIndex;
+      const activeClass = isActive 
+        ? 'bg-primary/10 text-primary font-medium border border-primary/20' 
+        : 'text-on-background hover:bg-surface-variant/30 border border-transparent';
+      const desc = currentLanguage === 'zh' ? cmd.descZh : cmd.descEn;
+      
+      return `
+        <div data-index="${idx}" class="suggestion-item flex flex-col md:flex-row md:items-center justify-between p-2 rounded cursor-pointer transition-colors gap-1 ${activeClass}">
+          <span class="font-code-md text-primary font-bold select-none text-[12px] shrink-0">${cmd.name}</span>
+          <span class="text-[10px] text-on-surface-variant select-none md:text-right max-w-[220px] md:max-w-md truncate">${desc}</span>
+        </div>
+      `;
+    }).join('');
+
+    // Attach click listeners to suggestions
+    slashAutocomplete.querySelectorAll('.suggestion-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(item.dataset.index);
+        selectSuggestion(idx);
+      });
+    });
+  }
+
+  function selectSuggestion(idx) {
+    const cmd = filteredSuggestions[idx];
+    if (!cmd) return;
+
+    const val = promptInput.value;
+    const selectionStart = promptInput.selectionStart;
+
+    // Find the last "/" typed before cursor
+    const lastSlashIndex = val.substring(0, selectionStart).lastIndexOf('/');
+    if (lastSlashIndex !== -1) {
+      const before = val.substring(0, lastSlashIndex);
+      const after = val.substring(selectionStart);
+      promptInput.value = before + cmd.name + ' ' + after;
+      // Put cursor after the inserted slash command and the space
+      const newCursorPos = lastSlashIndex + cmd.name.length + 1;
+      promptInput.setSelectionRange(newCursorPos, newCursorPos);
+    }
+    
+    hideAutocomplete();
+    promptInput.focus();
+    updateInputState();
+  }
+
+  promptInput.addEventListener('input', () => {
+    const val = promptInput.value;
+    const selectionStart = promptInput.selectionStart;
+    
+    // Check if user is typing a slash command
+    const textBeforeCursor = val.substring(0, selectionStart);
+    const lastSlashIndex = textBeforeCursor.lastIndexOf('/');
+    
+    if (lastSlashIndex !== -1) {
+      const charBeforeSlash = lastSlashIndex > 0 ? textBeforeCursor[lastSlashIndex - 1] : '\n';
+      if (charBeforeSlash === ' ' || charBeforeSlash === '\n' || charBeforeSlash === '\r') {
+        const query = textBeforeCursor.substring(lastSlashIndex);
+        if (!query.includes(' ')) {
+          showAutocomplete(query);
+          return;
+        }
+      }
+    }
+    hideAutocomplete();
+  });
+
+  promptInput.addEventListener('blur', () => {
+    // Delay slightly to allow click event on suggestion item to register
+    setTimeout(hideAutocomplete, 180);
+  });
 
   // Fast / Planning Mode toggle buttons configuration
   const planningModeBtn = document.getElementById('planning-mode-btn');
@@ -752,6 +867,32 @@ async function initConversationView() {
 
   sendPromptBtn.addEventListener('click', submitPrompt);
   promptInput.addEventListener('keydown', (e) => {
+    // Keyboard navigation for slash autocomplete popover
+    if (slashAutocomplete && !slashAutocomplete.classList.contains('hidden')) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedSuggestionIndex = (selectedSuggestionIndex + 1) % filteredSuggestions.length;
+        renderSuggestions();
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedSuggestionIndex = (selectedSuggestionIndex - 1 + filteredSuggestions.length) % filteredSuggestions.length;
+        renderSuggestions();
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        selectSuggestion(selectedSuggestionIndex);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        hideAutocomplete();
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submitPrompt();
