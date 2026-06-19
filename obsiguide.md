@@ -113,10 +113,11 @@
 - Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to parse User Prompts via Key 19 path and prioritize tool calls.
 - Updated [settings.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/settings.html) to list only the three verified Gemini 3.5 Flash model variants (High, Medium, Low) supported by the CLI backend.
 - Implemented conversation deletion including unlinking database files (.db, .db-wal, .db-shm) in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js), IPC bridge in [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) and [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js), and hover delete buttons with select/click handlers in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js).
+- Fixed Windows file lock issue in [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) by wrapping DatabaseSync calls in try-finally to ensure connections are closed, and tracked/terminated active runs in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) before deleting database files.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Run `npm start` to launch the GUI and test selecting and deleting conversations in the list.
+- Run `npm start` to launch the GUI and test selecting and deleting conversations in the list, verifying no Windows file lock errors occur.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->

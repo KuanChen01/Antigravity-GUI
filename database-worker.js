@@ -153,8 +153,9 @@ function listConversations() {
       }
     }
     
+    let db = null;
     try {
-      const db = new DatabaseSync(filePath, { readOnly: true });
+      db = new DatabaseSync(filePath, { readOnly: true });
       
       // Get cascade_id (conversation id)
       let conversationId = id;
@@ -221,6 +222,14 @@ function listConversations() {
         sizeBytes: stats.size,
         error: e.message
       });
+    } finally {
+      if (db) {
+        try {
+          db.close();
+        } catch (err) {
+          console.error(`Failed to close database file ${file}:`, err);
+        }
+      }
     }
   }
   
@@ -242,127 +251,138 @@ function getConversationDetails(id) {
     steps: []
   };
   
-  const db = new DatabaseSync(filePath, { readOnly: true });
-  
-  // Read steps
-  const rows = db.prepare("SELECT idx, step_type, status, step_payload, error_details FROM steps ORDER BY idx ASC").all();
-  
-  for (const row of rows) {
-    const step = {
-      index: row.idx,
-      type: row.step_type,
-      status: row.status,
-      error: null,
-      rawStrings: []
-    };
+  let db = null;
+  try {
+    db = new DatabaseSync(filePath, { readOnly: true });
     
-    // Parse error details
-    if (row.error_details) {
-      try {
-        const errorTree = parseProto(row.error_details);
-        const errStrings = extractAllStrings(errorTree);
-        step.error = errStrings.join('\n');
-      } catch (e) {
-        step.error = 'Failed to parse error BLOB';
+    // Read steps
+    const rows = db.prepare("SELECT idx, step_type, status, step_payload, error_details FROM steps ORDER BY idx ASC").all();
+    
+    for (const row of rows) {
+      const step = {
+        index: row.idx,
+        type: row.step_type,
+        status: row.status,
+        error: null,
+        rawStrings: []
+      };
+      
+      // Parse error details
+      if (row.error_details) {
+        try {
+          const errorTree = parseProto(row.error_details);
+          const errStrings = extractAllStrings(errorTree);
+          step.error = errStrings.join('\n');
+        } catch (e) {
+          step.error = 'Failed to parse error BLOB';
+        }
       }
-    }
-    
-    // Parse step payload
-    if (row.step_payload) {
-      try {
-        const tree = parseProto(row.step_payload);
-        step.rawStrings = extractAllStrings(tree);
-        
-        // Structured extraction based on step type
-        if (row.step_type === 14) {
-          // User input / planning prompt
-          let userPrompt = '';
-          const val19 = tree[19] && tree[19][0];
-          if (val19 && val19.sub) {
-            const val2 = val19.sub[2] && val19.sub[2][0];
-            if (val2 && val2.string) {
-              userPrompt = val2.string;
+      
+      // Parse step payload
+      if (row.step_payload) {
+        try {
+          const tree = parseProto(row.step_payload);
+          step.rawStrings = extractAllStrings(tree);
+          
+          // Structured extraction based on step type
+          if (row.step_type === 14) {
+            // User input / planning prompt
+            let userPrompt = '';
+            const val19 = tree[19] && tree[19][0];
+            if (val19 && val19.sub) {
+              const val2 = val19.sub[2] && val19.sub[2][0];
+              if (val2 && val2.string) {
+                userPrompt = val2.string;
+              }
             }
-          }
-          if (!userPrompt) {
-            const candidates = step.rawStrings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
-            candidates.sort((a, b) => b.length - a.length);
-            userPrompt = candidates[0] || '';
-          }
-          if (userPrompt) {
-            step.message = {
-              role: 'user',
-              text: userPrompt
+            if (!userPrompt) {
+              const candidates = step.rawStrings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
+              candidates.sort((a, b) => b.length - a.length);
+              userPrompt = candidates[0] || '';
+            }
+            if (userPrompt) {
+              step.message = {
+                role: 'user',
+                text: userPrompt
+              };
+            }
+          } else if (row.step_type === 15) {
+            // Agent Step (Thinking, Tool Call, or Final Response)
+            const val20 = tree[20] && tree[20][0];
+            if (val20 && val20.sub) {
+              const thoughts = val20.sub[3] && val20.sub[3][0] && val20.sub[3][0].string;
+              const finalResponse = val20.sub[8] && val20.sub[8][0] && val20.sub[8][0].string;
+              const toolSub = val20.sub[7] && val20.sub[7][0] && val20.sub[7][0].sub;
+              
+              // Prioritize tool calls to prevent intermediate step messages from masking tools
+              if (toolSub) {
+                const toolName = toolSub[2] && toolSub[2][0] && toolSub[2][0].string;
+                const toolParams = toolSub[3] && toolSub[3][0] && toolSub[3][0].string;
+                const botMatch = step.rawStrings.find(s => s.startsWith('bot-'));
+                
+                step.toolCall = {
+                  agentId: botMatch || 'Main Agent',
+                  tool: toolName || 'unknown_tool',
+                  parameters: toolParams || '{}',
+                  thoughts: thoughts || null,
+                  explanation: finalResponse || null
+                };
+              } else if (finalResponse) {
+                step.message = {
+                  role: 'agent',
+                  text: finalResponse,
+                  thoughts: thoughts || null
+                };
+              } else if (thoughts) {
+                step.message = {
+                  role: 'agent',
+                  text: thoughts,
+                  isThoughtsOnly: true
+                };
+              }
+            }
+          } else if (
+            row.step_type === 5 ||
+            row.step_type === 8 ||
+            row.step_type === 9 ||
+            row.step_type === 21 ||
+            row.step_type === 33 ||
+            row.step_type === 98 ||
+            row.step_type === 101 ||
+            row.step_type === 132
+          ) {
+            // Tool response step (Type 5=write/edit, 8=view_file, 9=list_dir, 21=run_command, 33=search_web, 98=MCP, 101=task, 132=list_permissions)
+            let responseText = '';
+            if (tree[42] && tree[42][0] && tree[42][0].sub && tree[42][0].sub[5] && tree[42][0].sub[5][0]) {
+              responseText = tree[42][0].sub[5][0].string || '';
+            } else if (tree[15] && tree[15][0] && tree[15][0].string) {
+              responseText = tree[15][0].string || '';
+            }
+            
+            if (!responseText) {
+              const filtered = step.rawStrings.filter(s => !s.startsWith('{') && !s.includes('toolAction') && s.length > 20);
+              responseText = filtered.join('\n');
+            }
+            
+            step.toolResponse = {
+              content: responseText || 'Tool executed successfully.'
             };
           }
-        } else if (row.step_type === 15) {
-          // Agent Step (Thinking, Tool Call, or Final Response)
-          const val20 = tree[20] && tree[20][0];
-          if (val20 && val20.sub) {
-            const thoughts = val20.sub[3] && val20.sub[3][0] && val20.sub[3][0].string;
-            const finalResponse = val20.sub[8] && val20.sub[8][0] && val20.sub[8][0].string;
-            const toolSub = val20.sub[7] && val20.sub[7][0] && val20.sub[7][0].sub;
-            
-            // Prioritize tool calls to prevent intermediate step messages from masking tools
-            if (toolSub) {
-              const toolName = toolSub[2] && toolSub[2][0] && toolSub[2][0].string;
-              const toolParams = toolSub[3] && toolSub[3][0] && toolSub[3][0].string;
-              const botMatch = step.rawStrings.find(s => s.startsWith('bot-'));
-              
-              step.toolCall = {
-                agentId: botMatch || 'Main Agent',
-                tool: toolName || 'unknown_tool',
-                parameters: toolParams || '{}',
-                thoughts: thoughts || null,
-                explanation: finalResponse || null
-              };
-            } else if (finalResponse) {
-              step.message = {
-                role: 'agent',
-                text: finalResponse,
-                thoughts: thoughts || null
-              };
-            } else if (thoughts) {
-              step.message = {
-                role: 'agent',
-                text: thoughts,
-                isThoughtsOnly: true
-              };
-            }
-          }
-        } else if (
-          row.step_type === 5 ||
-          row.step_type === 8 ||
-          row.step_type === 9 ||
-          row.step_type === 21 ||
-          row.step_type === 33 ||
-          row.step_type === 98 ||
-          row.step_type === 101 ||
-          row.step_type === 132
-        ) {
-          // Tool response step (Type 5=write/edit, 8=view_file, 9=list_dir, 21=run_command, 33=search_web, 98=MCP, 101=task, 132=list_permissions)
-          let responseText = '';
-          if (tree[42] && tree[42][0] && tree[42][0].sub && tree[42][0].sub[5] && tree[42][0].sub[5][0]) {
-            responseText = tree[42][0].sub[5][0].string || '';
-          } else if (tree[15] && tree[15][0] && tree[15][0].string) {
-            responseText = tree[15][0].string || '';
-          }
-          
-          if (!responseText) {
-            const filtered = step.rawStrings.filter(s => !s.startsWith('{') && !s.includes('toolAction') && s.length > 20);
-            responseText = filtered.join('\n');
-          }
-          
-          step.toolResponse = {
-            content: responseText || 'Tool executed successfully.'
-          };
+        } catch (e) {
+          console.error(`Failed to parse step payload at index ${row.idx}:`, e);
         }
-      } catch (e) {
-        console.error(`Failed to parse step payload at index ${row.idx}:`, e);
+      }
+      
+      details.steps.push(step);
+    }
+  } finally {
+    if (db) {
+      try {
+        db.close();
+      } catch (err) {
+        console.error(`Failed to close database file ${id}:`, err);
       }
     }
-    
-    details.steps.push(step);
   }
   
   return details;

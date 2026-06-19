@@ -7,6 +7,7 @@ const { spawn } = require('child_process');
 let mainWindow;
 let dbWorker = null;
 let activeAgyProcess = null;
+let runningConversationId = null;
 const pendingRequests = new Map();
 let requestIdCounter = 0;
 
@@ -112,6 +113,13 @@ ipcMain.handle('db:get-conversation-details', async (event, id) => {
 });
 
 ipcMain.handle('db:delete-conversation', async (event, id) => {
+  if (runningConversationId === id && activeAgyProcess) {
+    try {
+      activeAgyProcess.kill();
+      activeAgyProcess = null;
+      runningConversationId = null;
+    } catch (e) {}
+  }
   return await queryWorker('delete_conversation', { id });
 });
 
@@ -333,6 +341,7 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
   // Temporarily unset ANTIGRAVITY_LS_ADDRESS to force standalone execution
   delete options.env.ANTIGRAVITY_LS_ADDRESS;
 
+  runningConversationId = conversationId || null;
   activeAgyProcess = spawn(agyBin, args, options);
   
   activeAgyProcess.stdout.on('data', (data) => {
@@ -359,6 +368,7 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
   activeAgyProcess.on('close', (code) => {
     mainWindow.webContents.send('cli:exit', code);
     activeAgyProcess = null;
+    runningConversationId = null;
   });
   
   return { success: true };
