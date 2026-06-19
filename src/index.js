@@ -100,6 +100,47 @@ function translateDOM(container = document) {
   });
 }
 
+// Escape HTML tags to prevent rendering unescaped markup (fixes UI breakages on code blocks)
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag)
+  );
+}
+
+// Safely format message bodies (escapes raw HTML, preserves code blocks)
+function formatMessageText(text) {
+  if (!text) return '';
+  
+  // Split text by fenced code blocks
+  const parts = text.split(/(```[\s\S]*?```)/g);
+  
+  return parts.map(part => {
+    if (part.startsWith('```') && part.endsWith('```')) {
+      const match = part.match(/```(\w*)\n([\s\S]*?)```/);
+      if (match) {
+        const lang = match[1] || 'code';
+        const code = match[2];
+        return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded font-code-sm text-code-sm text-on-surface overflow-x-auto my-3"><div class="text-[10px] text-outline mb-1 font-sans uppercase font-bold border-b border-outline-variant/30 pb-1">${escapeHTML(lang)}</div><code class="block whitespace-pre select-text">${escapeHTML(code.trim())}</code></pre>`;
+      }
+      return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded font-code-sm text-code-sm text-on-surface overflow-x-auto my-3"><code class="block whitespace-pre select-text">${escapeHTML(part)}</code></pre>`;
+    } else {
+      let html = escapeHTML(part);
+      // Format inline code: `code`
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-surface-variant/50 px-1.5 py-0.5 rounded font-code-sm text-code-sm text-primary">$1</code>');
+      // Format line breaks
+      html = html.replace(/\n/g, '<br/>');
+      return html;
+    }
+  }).join('');
+}
+
 // DOM Cache
 const mainContent = document.getElementById('view-container');
 const navTabs = document.getElementById('nav-tabs');
@@ -255,8 +296,8 @@ async function initConversationView() {
     convList.innerHTML = list.map(c => {
       const isSelected = c.id === currentConversationId;
       const selectClass = isSelected ? 'bg-surface-variant text-on-surface border-l-2 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high';
-      const displayTitle = c.workspace && c.workspace !== 'Unknown Workspace' ? pathBasename(c.workspace) : (currentLanguage === 'zh' ? '新会话' : 'New Session');
-      const previewText = c.preview || (currentLanguage === 'zh' ? '暂无对话内容' : 'No prompt content');
+      const displayTitle = escapeHTML(c.workspace && c.workspace !== 'Unknown Workspace' ? pathBasename(c.workspace) : (currentLanguage === 'zh' ? '新会话' : 'New Session'));
+      const previewText = escapeHTML(c.preview || (currentLanguage === 'zh' ? '暂无对话内容' : 'No prompt content'));
       const stepsText = currentLanguage === 'zh' ? `${c.stepsCount} 步` : `${c.stepsCount} steps`;
       
       return `
@@ -332,7 +373,7 @@ async function initConversationView() {
         const roleLabel = isUser 
           ? (currentLanguage === 'zh' ? '用户指令' : 'User Instruction') 
           : (currentLanguage === 'zh' ? 'Antigravity 响应' : 'Antigravity Response');
-        const textFormatted = step.message.text.replace(/\n/g, '<br/>');
+        const textFormatted = formatMessageText(step.message.text);
         
         html += `
           <div class="p-4 rounded-lg border border-outline-variant space-y-2 ${roleClass}">
@@ -352,12 +393,12 @@ async function initConversationView() {
             <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
               <span class="text-primary font-bold flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px]">build</span>
-                ${toolLabel}: ${step.toolCall.tool}
+                ${toolLabel}: ${escapeHTML(step.toolCall.tool)}
               </span>
               <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
             </div>
             <div class="font-code-sm text-code-sm text-on-surface-variant bg-background/50 p-2.5 rounded overflow-x-auto select-text">
-              ${paramsLabel}: ${step.toolCall.parameters}
+              ${paramsLabel}: ${escapeHTML(step.toolCall.parameters)}
             </div>
           </div>
         `;
@@ -725,7 +766,12 @@ async function initSettingsView() {
     changelogModal.classList.remove('hidden');
     changelogContent.innerHTML = '<span class="animate-pulse">Loading changelog...</span>';
     const text = await window.api.getChangelog();
-    changelogContent.innerHTML = `<pre class="whitespace-pre-wrap">${text}</pre>`;
+    
+    changelogContent.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.className = 'whitespace-pre-wrap font-code-sm text-code-sm';
+    pre.textContent = text;
+    changelogContent.appendChild(pre);
   });
 
   closeChangelogBtn.addEventListener('click', () => {

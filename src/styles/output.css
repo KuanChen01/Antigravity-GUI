@@ -351,6 +351,9 @@
   .mx-auto {
     margin-inline: auto;
   }
+  .my-3 {
+    margin-block: calc(var(--spacing) * 3);
+  }
   .mt-0\.5 {
     margin-top: calc(var(--spacing) * 0.5);
   }
@@ -443,6 +446,9 @@
   }
   .hidden {
     display: none;
+  }
+  .inline {
+    display: inline;
   }
   .inline-block {
     display: inline-block;
@@ -1333,6 +1339,9 @@
   .pr-24 {
     padding-right: calc(var(--spacing) * 24);
   }
+  .pb-1 {
+    padding-bottom: var(--spacing);
+  }
   .pb-2 {
     padding-bottom: calc(var(--spacing) * 2);
   }
@@ -1395,6 +1404,9 @@
   }
   .font-label-sm {
     font-family: var(--font-label-sm);
+  }
+  .font-sans {
+    font-family: var(--font-sans);
   }
   .\!text-base {
     font-size: var(--text-base) !important;
