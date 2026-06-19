@@ -1257,6 +1257,12 @@
       background-color: color-mix(in oklab, var(--color-primary-container) 20%, transparent);
     }
   }
+  .bg-primary\/5 {
+    background-color: color-mix(in srgb, #adc6ff 5%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-primary) 5%, transparent);
+    }
+  }
   .bg-primary\/10 {
     background-color: color-mix(in srgb, #adc6ff 10%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1301,6 +1307,12 @@
   }
   .bg-surface-container-low {
     background-color: var(--color-surface-container-low);
+  }
+  .bg-surface-container-low\/60 {
+    background-color: color-mix(in srgb, #191b24 60%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-surface-container-low) 60%, transparent);
+    }
   }
   .bg-surface-container-lowest {
     background-color: var(--color-surface-container-lowest);
@@ -1569,6 +1581,9 @@
   .text-xl {
     font-size: var(--text-xl);
     line-height: var(--tw-leading, var(--text-xl--line-height));
+  }
+  .text-\[9\.5px\] {
+    font-size: 9.5px;
   }
   .text-\[10px\] {
     font-size: 10px;

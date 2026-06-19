@@ -303,14 +303,133 @@ async function initConversationView() {
   const convSearch = document.getElementById('conv-search');
   const slashAutocomplete = document.getElementById('slash-autocomplete');
 
+  // Attached image preview elements
+  const imagePreviewContainer = document.getElementById('image-preview-container');
+  const attachedImageThumb = document.getElementById('attached-image-thumb');
+  const attachedImageName = document.getElementById('attached-image-name');
+  const attachedImageSize = document.getElementById('attached-image-size');
+  const clearImageBtn = document.getElementById('clear-image-btn');
+
   let allConvs = [];
+  let activeAttachedImage = null;
+  let tempImagesToDelete = [];
 
   // Enable/disable send button based on prompt content and workspace
   function updateInputState() {
-    sendPromptBtn.disabled = isRunning || !promptInput.value.trim() || !activeWorkspace;
+    sendPromptBtn.disabled = isRunning || (!promptInput.value.trim() && !activeAttachedImage) || !activeWorkspace;
   }
   
   promptInput.addEventListener('input', updateInputState);
+
+  // Helper to handle attached/dropped image file
+  function handleAttachedImage(file) {
+    if (!activeWorkspace) {
+      alert(currentLanguage === 'zh' ? '请先选择一个工作区，再上传图片！' : 'Please select a workspace before attaching images!');
+      return;
+    }
+    
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(currentLanguage === 'zh' ? '图片大小超过限制（最大 5MB）' : 'Image size exceeds the limit (Max 5MB)');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      attachedImageThumb.src = e.target.result;
+      attachedImageName.textContent = file.name || (currentLanguage === 'zh' ? '剪切板图片.png' : 'clipboard_image.png');
+      attachedImageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+      imagePreviewContainer.classList.remove('hidden');
+
+      try {
+        const arrayBuffer = e.target.result.split(',')[1] 
+          ? Uint8Array.from(atob(e.target.result.split(',')[1]), c => c.charCodeAt(0)).buffer
+          : await file.arrayBuffer();
+
+        if (activeAttachedImage) {
+          await window.api.deleteImageFile(activeAttachedImage);
+        }
+
+        const res = await window.api.saveImageFile(arrayBuffer, activeWorkspace);
+        if (res.success) {
+          activeAttachedImage = res.filePath;
+          tempImagesToDelete.push(res.filePath);
+          updateInputState();
+        } else {
+          alert(`Save failed: ${res.error}`);
+        }
+      } catch (err) {
+        console.error("Save image error:", err);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearAttachedImage() {
+    if (activeAttachedImage) {
+      window.api.deleteImageFile(activeAttachedImage).catch(console.error);
+      activeAttachedImage = null;
+    }
+    imagePreviewContainer.classList.add('hidden');
+    attachedImageThumb.src = '';
+    attachedImageName.textContent = '';
+    attachedImageSize.textContent = '';
+    updateInputState();
+  }
+
+  if (clearImageBtn) {
+    clearImageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearAttachedImage();
+    });
+  }
+
+  // Paste image handler
+  promptInput.addEventListener('paste', (e) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleAttachedImage(file);
+          break;
+        }
+      }
+    }
+  });
+
+  // Drag and drop image handler
+  const inputBorderContainer = promptInput.closest('.relative');
+  if (inputBorderContainer) {
+    inputBorderContainer.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputBorderContainer.classList.add('border-primary', 'bg-primary/5');
+    });
+
+    inputBorderContainer.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputBorderContainer.classList.remove('border-primary', 'bg-primary/5');
+    });
+
+    inputBorderContainer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputBorderContainer.classList.remove('border-primary', 'bg-primary/5');
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type.indexOf('image') !== -1) {
+          handleAttachedImage(file);
+        } else {
+          alert(currentLanguage === 'zh' ? '仅支持拖拽图片文件！' : 'Only image files are supported!');
+        }
+      }
+    });
+  }
 
   // Slash Commands Autocomplete Logic
   let selectedSuggestionIndex = 0;
@@ -806,10 +925,29 @@ async function initConversationView() {
   // Trigger prompt submission
   async function submitPrompt() {
     const prompt = promptInput.value.trim();
-    if (!prompt || isRunning || !activeWorkspace) return;
+    if ((!prompt && !activeAttachedImage) || isRunning || !activeWorkspace) return;
     
     isRunning = true;
     promptInput.value = '';
+    
+    let finalPrompt = prompt;
+    const attachedImgPath = activeAttachedImage;
+    if (attachedImgPath) {
+      const imgLine = currentLanguage === 'zh'
+        ? `\n\n[已附图片: ${attachedImgPath}]`
+        : `\n\n[Attached Image: ${attachedImgPath}]`;
+      finalPrompt = prompt + imgLine;
+    }
+    
+    // Clear preview immediately from input field after submission
+    if (activeAttachedImage) {
+      activeAttachedImage = null;
+      imagePreviewContainer.classList.add('hidden');
+      attachedImageThumb.src = '';
+      attachedImageName.textContent = '';
+      attachedImageSize.textContent = '';
+    }
+    
     updateInputState();
     
     stepProgress.classList.remove('hidden');
@@ -823,12 +961,13 @@ async function initConversationView() {
           <span class="text-outline">Running...</span>
         </div>
         <p class="text-body-md text-on-surface select-text">${prompt.replace(/\n/g, '<br/>')}</p>
+        ${attachedImgPath ? `<p class="text-[11px] text-primary italic font-bold">Image attached: ${pathBasename(attachedImgPath)}</p>` : ''}
       </div>
     `;
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
     try {
-      await window.api.runPrompt(prompt, currentConversationId, activeWorkspace, activeMode);
+      await window.api.runPrompt(finalPrompt, currentConversationId, activeWorkspace, activeMode);
     } catch (e) {
       stepLogs.innerHTML = `<div class="text-error">Submission failed: ${e.message}</div>`;
       isRunning = false;
@@ -886,13 +1025,25 @@ async function initConversationView() {
     stepProgress.scrollTop = stepProgress.scrollHeight;
   });
 
-  const removeAgyExitListener = window.api.onAgyExit((code) => {
+  const removeAgyExitListener = window.api.onAgyExit(async (code) => {
     isRunning = false;
     updateInputState();
     stepProgress.classList.add('hidden');
     loadConversations(); // refresh list
     if (currentConversationId) {
       loadConversationDetails(currentConversationId); // reload chat
+    }
+    
+    // Cleanup temporary image files inside the workspace
+    if (tempImagesToDelete.length > 0) {
+      for (const filePath of tempImagesToDelete) {
+        try {
+          await window.api.deleteImageFile(filePath);
+        } catch (err) {
+          console.error("Cleanup temp image failed:", err);
+        }
+      }
+      tempImagesToDelete = [];
     }
   });
 
@@ -917,6 +1068,25 @@ async function initConversationView() {
   navigateTo = async (vName) => {
     removeAgyOutputListener();
     removeAgyExitListener();
+    
+    // Clean up any remaining temp files in the workspace
+    if (tempImagesToDelete.length > 0) {
+      for (const filePath of tempImagesToDelete) {
+        try {
+          await window.api.deleteImageFile(filePath);
+        } catch (err) {
+          console.error("Cleanup temp image on navigate failed:", err);
+        }
+      }
+      tempImagesToDelete = [];
+    }
+    if (activeAttachedImage) {
+      try {
+        await window.api.deleteImageFile(activeAttachedImage);
+      } catch (e) {}
+      activeAttachedImage = null;
+    }
+
     navigateTo = oldNavigateTo; // restore
     await navigateTo(vName);
   };

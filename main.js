@@ -194,6 +194,31 @@ ipcMain.handle('config:remove-workspace', async (event, wsPath) => {
   }
 });
 
+ipcMain.handle('config:save-image-file', async (event, arrayBuffer, workspacePath) => {
+  try {
+    const buffer = Buffer.from(arrayBuffer);
+    const fileName = `.agy_temp_image_${Date.now()}.png`;
+    const fullPath = path.join(workspacePath, fileName);
+    fs.writeFileSync(fullPath, buffer);
+    return { success: true, filePath: fullPath };
+  } catch (e) {
+    console.error("Failed to save temporary image file:", e);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('config:delete-image-file', async (event, filePath) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return { success: true };
+    }
+    return { success: false, error: 'File does not exist' };
+  } catch (e) {
+    console.error("Failed to delete temporary image file:", e);
+    return { success: false, error: e.message };
+  }
+});
 
 ipcMain.handle('config:get-mcp-config', async () => {
   const mcpConfigPath = path.join(getCliDir(), 'mcp_config.json');

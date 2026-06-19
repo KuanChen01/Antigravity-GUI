@@ -25,9 +25,12 @@ contextBridge.exposeInMainWorld('api', {
   installPlugin: (name) => ipcRenderer.invoke('plugins:install', name),
   uninstallPlugin: (name) => ipcRenderer.invoke('plugins:uninstall', name),
   
-  // MCP Config Management
   getMcpConfig: () => ipcRenderer.invoke('config:get-mcp-config'),
   saveMcpConfig: (config) => ipcRenderer.invoke('config:save-mcp-config', config),
+  
+  // Image File Upload Helper
+  saveImageFile: (arrayBuffer, workspacePath) => ipcRenderer.invoke('config:save-image-file', arrayBuffer, workspacePath),
+  deleteImageFile: (filePath) => ipcRenderer.invoke('config:delete-image-file', filePath),
   
   // Streaming listeners
   onAgyOutput: (callback) => {

@@ -59,15 +59,32 @@
 
     <!-- Input Bar -->
     <div class="p-6 border-t border-outline-variant bg-surface-container-low shrink-0">
-      <div class="flex items-end bg-surface-container-lowest rounded-lg border border-outline-variant p-2 gap-3 relative focus-within:border-primary">
+      <div class="flex flex-col bg-surface-container-lowest rounded-lg border border-outline-variant p-2 gap-2 relative focus-within:border-primary">
         <!-- Autocomplete Suggestions Popover -->
         <div id="slash-autocomplete" class="absolute left-0 bottom-full mb-2 w-full max-h-60 bg-surface-container-high border border-outline-variant rounded-lg shadow-lg overflow-y-auto hidden z-20 flex flex-col p-1">
           <!-- Suggestion rows will be rendered here -->
         </div>
-        <textarea id="prompt-input" rows="2" class="flex-1 bg-transparent border-none text-body-md text-on-background placeholder-outline resize-none focus:ring-0 p-1 min-h-[40px] max-h-32" placeholder="Send a prompt to the agent (Shift+Enter for new line)..."></textarea>
-        <button id="send-prompt-btn" class="p-2 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center" disabled>
-          <span class="material-symbols-outlined text-[20px]">send</span>
-        </button>
+
+        <!-- Attached Image Preview (Hidden by default) -->
+        <div id="image-preview-container" class="hidden flex items-center justify-between bg-surface-container-low/60 border border-outline-variant/30 rounded p-1.5 gap-3 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <img id="attached-image-thumb" class="w-10 h-10 object-cover rounded border border-outline-variant shrink-0" src="" />
+            <div class="min-w-0">
+              <span class="text-[11px] font-bold text-on-background block truncate" id="attached-image-name">Attached Image</span>
+              <span class="text-[9.5px] text-on-surface-variant block truncate" id="attached-image-size">0 KB</span>
+            </div>
+          </div>
+          <button id="clear-image-btn" class="p-1 hover:bg-surface-variant rounded text-on-surface-variant hover:text-error transition-colors flex items-center justify-center shrink-0" title="Remove Image">
+            <span class="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+
+        <div class="flex items-end gap-3 w-full">
+          <textarea id="prompt-input" rows="2" class="flex-1 bg-transparent border-none text-body-md text-on-background placeholder-outline resize-none focus:ring-0 p-1 min-h-[40px] max-h-32" placeholder="Send a prompt to the agent (Shift+Enter for new line)..."></textarea>
+          <button id="send-prompt-btn" class="p-2 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center" disabled>
+            <span class="material-symbols-outlined text-[20px]">send</span>
+          </button>
+        </div>
       </div>
       <div class="flex items-center justify-between mt-2 font-label-sm text-label-sm text-on-surface-variant">
         <span>Workspace: <strong id="active-ws-path" class="text-on-surface">None</strong></span>
