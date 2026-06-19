@@ -48,5 +48,11 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('cli:permission-required', subscription);
     return () => ipcRenderer.removeListener('cli:permission-required', subscription);
   },
-  approvePermission: (approved) => ipcRenderer.send('cli:permission-response', approved)
+  approvePermission: (approved) => ipcRenderer.send('cli:permission-response', approved),
+  onUpdaterStatus: (callback) => {
+    const subscription = (event, data) => callback(data);
+    ipcRenderer.on('updater:status', subscription);
+    return () => ipcRenderer.removeListener('updater:status', subscription);
+  },
+  quitAndInstallApp: () => ipcRenderer.invoke('cli:quit-and-install')
 });

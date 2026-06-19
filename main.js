@@ -89,12 +89,52 @@ function createWindow() {
   // mainWindow.webContents.openDevTools();
 }
 
+const { autoUpdater } = require('electron-updater');
+
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true;
+
+  autoUpdater.on('checking-for-update', () => {
+    sendStatusToWindow('checking-for-update');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    sendStatusToWindow('update-available', info);
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    sendStatusToWindow('update-not-available', info);
+  });
+
+  autoUpdater.on('error', (err) => {
+    sendStatusToWindow('error', err == null ? "unknown" : (err.stack || err).toString());
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    sendStatusToWindow('download-progress', progressObj);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    sendStatusToWindow('update-downloaded', info);
+  });
+}
+
+function sendStatusToWindow(status, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('updater:status', { status, payload });
+  }
+}
+
 app.whenReady().then(() => {
   initDbWorker();
   createWindow();
+  setupAutoUpdater();
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+      setupAutoUpdater();
+    }
   });
 });
 
@@ -335,6 +375,11 @@ ipcMain.handle('cli:get-changelog', async () => {
 });
 
 ipcMain.handle('cli:check-updates', async () => {
+  // Trigger GUI Auto-Updater check in background
+  autoUpdater.checkForUpdates().catch((err) => {
+    console.error("AutoUpdater check failed:", err);
+  });
+
   return new Promise((resolve) => {
     const agyBin = getAgyExecutablePath();
     const child = spawn(agyBin, ['update']);
@@ -351,6 +396,10 @@ ipcMain.handle('cli:check-updates', async () => {
       resolve({ output, success: code === 0 });
     });
   });
+});
+
+ipcMain.handle('cli:quit-and-install', async () => {
+  autoUpdater.quitAndInstall();
 });
 
 // Interactive / Print Prompt Executions

@@ -1604,7 +1604,14 @@ function setupPermissionHandlers() {
 // --- GLOBAL UPDATE CHECKER ---
 function setupUpdateChecker() {
   const textSpan = checkUpdatesBtn.querySelector('span[data-i18n="CHECK_UPDATES"]');
+  let isUpdateReady = false;
+
   checkUpdatesBtn.addEventListener('click', async () => {
+    if (isUpdateReady) {
+      window.api.quitAndInstallApp();
+      return;
+    }
+
     checkUpdatesBtn.disabled = true;
     if (textSpan) {
       textSpan.textContent = currentLanguage === 'zh' ? '正在检查...' : 'Checking...';
@@ -1623,9 +1630,46 @@ function setupUpdateChecker() {
       if (promptInput) promptInput.focus();
     } finally {
       checkUpdatesBtn.disabled = false;
-      if (textSpan) {
+      if (!isUpdateReady && textSpan) {
         textSpan.textContent = currentLanguage === 'zh' ? '检查更新' : 'Check Updates';
       }
+    }
+  });
+
+  // Listen to updater status from main process
+  window.api.onUpdaterStatus(({ status, payload }) => {
+    console.log("Updater status event:", status, payload);
+    switch (status) {
+      case 'checking-for-update':
+        break;
+      case 'update-available':
+        break;
+      case 'update-not-available':
+        break;
+      case 'error':
+        console.error("Auto-updater error:", payload);
+        break;
+      case 'download-progress':
+        if (textSpan) {
+          const percent = Math.round(payload.percent || 0);
+          textSpan.textContent = currentLanguage === 'zh' ? `下载中 ${percent}%` : `Downloading ${percent}%`;
+        }
+        break;
+      case 'update-downloaded':
+        isUpdateReady = true;
+        checkUpdatesBtn.disabled = false;
+        if (textSpan) {
+          textSpan.textContent = currentLanguage === 'zh' ? '重启安装' : 'Restart Install';
+        }
+        const installConfirm = confirm(currentLanguage === 'zh'
+          ? `新版本 GUI ${payload.version} 已下载完成。\n是否立即重启应用并完成安装？`
+          : `New GUI version ${payload.version} is downloaded.\nWould you like to restart the app and install now?`
+        );
+        window.focus();
+        if (installConfirm) {
+          window.api.quitAndInstallApp();
+        }
+        break;
     }
   });
 }

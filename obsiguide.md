@@ -87,7 +87,8 @@
 - **MCP Server List Integration**: Added dynamic listing of custom MCP servers from `mcp_config.json` (such as `agentmem`), as the GUI previously only fetched dynamic plugins via `agy plugin list` and ignored custom servers. Added enable/disable toggling, deletion, and addition of custom servers directly from the Tools view.
 - **Implemented Registered Workspace Deletion**: Added removal support for registered workspace paths, enabling users to unregister paths in `projects.json` via GUI with confirmation dialogs.
 - **Fixed Workspace Mapping Bug**: Resolved issue where a conversation initiated in a session with multiple active workspaces would only map to the first workspace. Implemented accurate protobuf parsing of `trajectory_metadata_blob` to extract all active workspaces and filter properly.
-- **Packaged Release Executable**: Successfully compiled Tailwind CSS v4 and packaged the Electron desktop application using `electron-builder`, producing `dist/Antigravity Setup 1.0.0.exe` installer and `dist/win-unpacked/Antigravity.exe` standalone.
+- **Implemented GUI Auto-Updater**: Integrated `electron-updater` package to allow standard auto-updates. Configured GitHub Releases integration in `package.json` pointing to `KuanChen01/Antigravity-GUI`. Designed background check, progress bar text rendering, and confirmation-to-install flow.
+- **Packaged Release Executable**: Successfully compiled Tailwind CSS v4 and packaged the Electron desktop application using `electron-builder`, producing `dist/Antigravity-Setup-1.0.0.exe` installer and `dist/win-unpacked/Antigravity.exe` standalone.
 
 ## Verified Commands
 <!-- AGENT-MAINTAINED: update during work -->
@@ -112,20 +113,23 @@
 <!-- AGENT-MAINTAINED: update during work -->
 - Created [Antigravity-GUI.md](file:///E:/Vault/02_Projects/Antigravity-GUI.md)
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
-- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace`, `config:save-image-file`, and `config:delete-image-file` handlers, and decoupled command prefixes to respect explicit slash commands.
-- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace`, `saveImageFile`, and `deleteImageFile` API bridges.
+- Updated [package.json](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/package.json) to add `electron-updater` dependency, `publish` configuration, and hyphenated installer `artifactName` pattern.
+- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace`, `config:save-image-file`, and `config:delete-image-file` handlers, configure autoUpdater event forwarding, and add `cli:quit-and-install` and `cli:check-updates` autoUpdater bridges.
+- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace`, `saveImageFile`, `deleteImageFile`, `onUpdaterStatus`, and `quitAndInstallApp` API bridges.
 - Updated [database-worker.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/database-worker.js) to add `extractWorkspacePathsFromProto` and parse multiple workspaces in `listConversations()`.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, implement clipboard paste and drag-and-drop image uploads, and support workspaces array filtering and search.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, implement clipboard paste and drag-and-drop image uploads, support workspaces array filtering/search, and implement background download progress and install trigger for GUI updater.
 - Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, delete the legacy toggle buttons from the top action bar, and add the `#image-preview-container` layout block inside the prompt box.
 - Updated [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html) to replace the uncompiled `px-gutter` in the top navbar header with a standard Tailwind `px-6` utility to resolve layout alignment.
-- Generated installer `dist/Antigravity Setup 1.0.0.exe` and standalone program `dist/win-unpacked/Antigravity.exe` using `npm run dist`.
+- Created [dev-app-update.yml](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/dev-app-update.yml) to enable local updater validation.
+- Generated installer `dist/Antigravity-Setup-1.0.0.exe` and standalone program `dist/win-unpacked/Antigravity.exe` using `npm run dist`.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Launch the newly packaged installer `dist/Antigravity Setup 1.0.0.exe` to test full application features in a production-like environment.
+- Upload the generated `dist/Antigravity-Setup-1.0.0.exe`, `dist/latest.yml`, and blockmap files to the GitHub Releases page of the repository `KuanChen01/Antigravity-GUI` to establish the initial update baseline.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: workspaces-array-mapping-bug-fixed
+- status: gui-auto-updater-implemented
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
+
