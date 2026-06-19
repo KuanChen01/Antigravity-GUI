@@ -175,18 +175,14 @@ function listConversations() {
       // Try to find the initial user prompt as preview
       let preview = '';
       try {
-        // Step type 5 is often used for user prompts
-        const firstPromptRow = db.prepare("SELECT step_payload FROM steps WHERE step_type = 5 ORDER BY idx ASC LIMIT 1").get();
+        const firstPromptRow = db.prepare("SELECT step_payload FROM steps WHERE step_type = 14 ORDER BY idx ASC LIMIT 1").get();
         if (firstPromptRow && firstPromptRow.step_payload) {
           const tree = parseProto(firstPromptRow.step_payload);
           const strings = extractAllStrings(tree);
-          // Look for any long string that represents prompt text
-          const candidates = strings.filter(s => s.trim().length > 10 && !s.includes('file://') && !s.includes('Instruction:'));
+          const candidates = strings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
+          candidates.sort((a, b) => b.length - a.length);
           if (candidates.length > 0) {
             preview = candidates[0].slice(0, 120);
-          } else {
-            // Fallback: join short strings
-            preview = strings.join(' ').slice(0, 120);
           }
         }
       } catch (e) {}
@@ -265,37 +261,66 @@ function getConversationDetails(id) {
         step.rawStrings = extractAllStrings(tree);
         
         // Structured extraction based on step type
-        if (row.step_type === 15) {
-          // Tool Call
-          // Try to find bot/agent ID, tool name, and parameters JSON
-          const botMatch = step.rawStrings.find(s => s.startsWith('bot-'));
-          const toolMatch = tree[7] && tree[7][0] && tree[7][0].sub && tree[7][0].sub[9] && tree[7][0].sub[9][0] && tree[7][0].sub[9][0].string;
-          const paramMatch = tree[7] && tree[7][0] && tree[7][0].sub && tree[7][0].sub[3] && tree[7][0].sub[3][0] && tree[7][0].sub[3][0].string;
-          
-          step.toolCall = {
-            agentId: botMatch || 'Main Agent',
-            tool: toolMatch || step.rawStrings.find(s => s === 'run_command' || s === 'view_file' || s === 'replace_file_content' || s === 'write_to_file') || 'unknown_tool',
-            parameters: paramMatch || step.rawStrings.find(s => s.startsWith('{') && s.endsWith('}')) || '{}'
-          };
-        } else if (row.step_type === 9) {
-          // Tool Response / Result
-          // Gather files read or written and standard tool output
-          step.toolResponse = {
-            content: step.rawStrings.join('\n')
-          };
-        } else if (row.step_type === 5) {
+        if (row.step_type === 14) {
           // User input / planning prompt
-          const text = step.rawStrings.filter(s => !s.startsWith('Instruction:') && !s.includes('file://'));
-          step.message = {
-            role: 'user',
-            text: text.join('\n')
-          };
-        } else if (row.step_type === 8) {
-          // Agent Text Response / Thoughts
-          const text = step.rawStrings.filter(s => !s.startsWith('Instruction:') && !s.includes('file://'));
-          step.message = {
-            role: 'agent',
-            text: text.join('\n')
+          const candidates = step.rawStrings.filter(s => s.trim().length > 0 && !s.includes('-') && !s.startsWith('\n'));
+          candidates.sort((a, b) => b.length - a.length);
+          const userPrompt = candidates[0] || '';
+          if (userPrompt) {
+            step.message = {
+              role: 'user',
+              text: userPrompt
+            };
+          }
+        } else if (row.step_type === 15) {
+          // Agent Step (Thinking, Tool Call, or Final Response)
+          const val20 = tree[20] && tree[20][0];
+          if (val20 && val20.sub) {
+            const thoughts = val20.sub[3] && val20.sub[3][0] && val20.sub[3][0].string;
+            const finalResponse = val20.sub[8] && val20.sub[8][0] && val20.sub[8][0].string;
+            const toolSub = val20.sub[7] && val20.sub[7][0] && val20.sub[7][0].sub;
+            
+            if (finalResponse) {
+              step.message = {
+                role: 'agent',
+                text: finalResponse,
+                thoughts: thoughts || null
+              };
+            } else if (toolSub) {
+              const toolName = toolSub[2] && toolSub[2][0] && toolSub[2][0].string;
+              const toolParams = toolSub[3] && toolSub[3][0] && toolSub[3][0].string;
+              const botMatch = step.rawStrings.find(s => s.startsWith('bot-'));
+              
+              step.toolCall = {
+                agentId: botMatch || 'Main Agent',
+                tool: toolName || 'unknown_tool',
+                parameters: toolParams || '{}',
+                thoughts: thoughts || null
+              };
+            } else if (thoughts) {
+              step.message = {
+                role: 'agent',
+                text: thoughts,
+                isThoughtsOnly: true
+              };
+            }
+          }
+        } else if (row.step_type === 9 || row.step_type === 21 || row.step_type === 33 || row.step_type === 132) {
+          // Tool response step (Type 9=list_dir, 21=run_command, 33=search_web, 132=list_permissions)
+          let responseText = '';
+          if (tree[42] && tree[42][0] && tree[42][0].sub && tree[42][0].sub[5] && tree[42][0].sub[5][0]) {
+            responseText = tree[42][0].sub[5][0].string || '';
+          } else if (tree[15] && tree[15][0] && tree[15][0].string) {
+            responseText = tree[15][0].string || '';
+          }
+          
+          if (!responseText) {
+            const filtered = step.rawStrings.filter(s => !s.startsWith('{') && !s.includes('toolAction') && s.length > 20);
+            responseText = filtered.join('\n');
+          }
+          
+          step.toolResponse = {
+            content: responseText || 'Tool executed successfully.'
           };
         }
       } catch (e) {

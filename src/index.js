@@ -370,24 +370,57 @@ async function initConversationView() {
       if (step.message) {
         const isUser = step.message.role === 'user';
         const roleClass = isUser ? 'bg-surface-container-low border-l-4 border-secondary' : 'bg-surface-container-high/50 border-l-4 border-primary';
-        const roleLabel = isUser 
+        
+        let roleLabel = isUser 
           ? (currentLanguage === 'zh' ? '用户指令' : 'User Instruction') 
           : (currentLanguage === 'zh' ? 'Antigravity 响应' : 'Antigravity Response');
+          
+        if (step.message.isThoughtsOnly && !isUser) {
+          roleLabel = currentLanguage === 'zh' ? '智能体思考' : 'Agent Rationale';
+        }
+        
         const textFormatted = formatMessageText(step.message.text);
         
+        let thoughtsHtml = '';
+        if (step.message.thoughts && !isUser) {
+          thoughtsHtml = `
+            <details class="mb-3 text-label-sm text-on-surface-variant bg-surface-container/60 rounded border border-outline-variant/40 p-2.5">
+              <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
+                ${currentLanguage === 'zh' ? '查看思考过程' : 'View Thinking Process'}
+              </summary>
+              <div class="mt-2 pl-6 whitespace-pre-wrap select-text leading-relaxed font-sans text-on-surface-variant">${escapeHTML(step.message.thoughts)}</div>
+            </details>
+          `;
+        }
+
         html += `
           <div class="p-4 rounded-lg border border-outline-variant space-y-2 ${roleClass}">
             <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
               <span class="font-bold text-on-background">${roleLabel}</span>
               <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
             </div>
-            <p class="text-body-md text-on-surface select-text">${textFormatted}</p>
+            ${thoughtsHtml}
+            <p class="text-body-md text-on-surface select-text leading-relaxed">${textFormatted}</p>
           </div>
         `;
       } else if (step.toolCall) {
         const toolLabel = currentLanguage === 'zh' ? '工具执行' : 'Tool Execution';
         const paramsLabel = currentLanguage === 'zh' ? '参数' : 'Parameters';
         
+        let thoughtsHtml = '';
+        if (step.toolCall.thoughts) {
+          thoughtsHtml = `
+            <details class="mb-2 text-label-sm text-on-surface-variant bg-surface-container/40 rounded border border-outline-variant/30 p-2">
+              <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[14px]">psychology</span>
+                ${currentLanguage === 'zh' ? '思考过程' : 'Thinking Process'}
+              </summary>
+              <div class="mt-2 pl-5 whitespace-pre-wrap select-text leading-relaxed font-sans">${escapeHTML(step.toolCall.thoughts)}</div>
+            </details>
+          `;
+        }
+
         html += `
           <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-lowest/80 space-y-2">
             <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
@@ -397,9 +430,23 @@ async function initConversationView() {
               </span>
               <span class="text-outline">${currentLanguage === 'zh' ? '步骤' : 'Step'} #${step.index}</span>
             </div>
-            <div class="font-code-sm text-code-sm text-on-surface-variant bg-background/50 p-2.5 rounded overflow-x-auto select-text">
+            ${thoughtsHtml}
+            <div class="font-code-sm text-code-sm text-on-surface-variant bg-background/50 p-2.5 rounded overflow-x-auto select-text border border-outline-variant/30">
               ${paramsLabel}: ${escapeHTML(step.toolCall.parameters)}
             </div>
+          </div>
+        `;
+      } else if (step.toolResponse) {
+        const resultLabel = currentLanguage === 'zh' ? '工具执行结果' : 'Tool Output Result';
+        html += `
+          <div class="p-3 rounded-lg border border-outline-variant/60 bg-surface-container/20 space-y-2">
+            <details class="text-label-sm text-on-surface-variant">
+              <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">description</span>
+                ${resultLabel} (Step #${step.index})
+              </summary>
+              <pre class="mt-2 bg-background/50 p-2.5 rounded font-code-sm text-code-sm overflow-x-auto select-text max-h-60 leading-relaxed border border-outline-variant/20">${escapeHTML(step.toolResponse.content)}</pre>
+            </details>
           </div>
         `;
       }

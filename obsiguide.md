@@ -66,7 +66,7 @@
 
 ## Current Goal
 <!-- AGENT-MAINTAINED: update during work -->
-- Assist the user in verifying the new bilingual setting in the Electron app interface.
+- Assist the user in verifying that conversation list selections and code blocks render correctly without layout breakages.
 
 ## Current State
 <!-- AGENT-MAINTAINED: update during work -->
@@ -79,7 +79,8 @@
 - Built modular front-end views and controller (`src/index.html`, `src/index.js`, subviews in `src/views/`).
 - Identified and fixed an Electron `UtilityProcess` communication bug in `database-worker.js` by swapping legacy `process.on('message')` with the correct `process.parentPort` EventInterface.
 - Initialized a Git repository at `E:\Kuan\Projects\Codex\Antigravity-GUI`, configured `.gitignore`, and made the initial commit of all project files.
-- Added a language choice dropdown to [settings.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/settings.html) and implemented a robust translation framework in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), supporting on-the-fly English/Chinese localization switching. Committed these changes.
+- Added a language choice dropdown to settings and implemented dynamic switching.
+- Identified and fixed an HTML injection layout bug where raw HTML tags in agent step messages or tool parameters were parsed as live DOM elements, breaking sidebar navigation and page headers. Implemented `escapeHTML` and a fenced-code-block markdown renderer. Committed these changes.
 
 ## Verified Commands
 <!-- AGENT-MAINTAINED: update during work -->
@@ -111,15 +112,16 @@
 - Created subviews inside [views/](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/)
 - Created Git repository and submitted the initial commit.
 - Implemented language selection dropdown (en/zh) and live dynamic DOM translation mechanism.
+- Fixed HTML Injection UI bug in chat messages, previews, and parameters by escaping tags and rendering fenced code blocks inside safe pre elements.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Run `npm start` to test setting the language to Chinese in the Settings panel and verify that all UI labels update instantly.
+- Restart the Electron app (`npm start`) and click the affected conversation to verify that it loads cleanly without breaking the UI.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-19
-- status: language-setting-implemented
+- status: chat-ui-bug-fixed
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
