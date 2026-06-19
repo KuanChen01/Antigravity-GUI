@@ -109,18 +109,18 @@
 <!-- AGENT-MAINTAINED: update during work -->
 - Created [Antigravity-GUI.md](file:///E:/Vault/02_Projects/Antigravity-GUI.md)
 - Created [implementation_plan.md](file:///C:/Users/Kuan/.gemini/antigravity-cli/brain/251c8c35-72a0-4587-a5b6-bfb733ebc963/implementation_plan.md)
-- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace` handler, and decoupled command prefixes to respect explicit slash commands.
-- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace` API bridge.
-- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, and clean up toggle buttons handlers.
-- Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, and delete the legacy toggle buttons from the top action bar.
+- Updated [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to append `config:remove-workspace`, `config:save-image-file`, and `config:delete-image-file` handlers, and decoupled command prefixes to respect explicit slash commands.
+- Updated [preload.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/preload.js) to expose `removeWorkspace`, `saveImageFile`, and `deleteImageFile` API bridges.
+- Updated [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js) to render delete button on workspace cards, bind confirmation prompts, clean `activeWorkspace` if current is deleted, fix workspace labels update bug on initial load, dynamically update sidebar workspace title, implement slash commands autocomplete, clean up toggle buttons handlers, and implement clipboard paste and drag-and-drop image uploads with active workspace caching and cleanup.
+- Updated [conversation.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/views/conversation.html) to assign an ID to the sidebar header title, insert the autocomplete popup container, delete the legacy toggle buttons from the top action bar, and add the `#image-preview-container` layout block inside the prompt box.
 - Updated [index.html](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.html) to replace the uncompiled `px-gutter` in the top navbar header with a standard Tailwind `px-6` utility to resolve layout alignment.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application (`npm start`) and verify that both the "Control Center" title on the left and the connection status dot on the right have a comfortable margin from the window edges.
+- Start the application (`npm start`), copy an image to the clipboard, and paste it into the prompt box (or drag and drop an image file) to verify that the thumbnail renders correctly and the image path is appended to the prompt on submit.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: header-padding-updated
+- status: clipboard-paste-drag-drop-image-support-added
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
