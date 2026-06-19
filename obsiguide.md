@@ -120,15 +120,16 @@
 - Fixed focus hijacking issue in Electron after native confirm/alert dialogs by forcing focus back to the window and prompt input box in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), and added auto-focus when clicking/loading a conversation.
 - Integrated `electron-builder` packaging and custom branding assets, setting up packaging config and scripts in [package.json](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/package.json), copying the custom app logo to [assets/icon.png](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/assets/icon.png), and successfully building the NSIS setup installer (.exe).
 - Fixed update button text collapse bug by refining selector to query specifically the text `span` instead of the first child icon `span` in [index.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/src/index.js), localizing status text, and reclaiming focus post native alert dialog dismissal.
+- Added `icon` path in `BrowserWindow` constructor configuration in [main.js](file:///E:/Kuan/Projects/Codex/Antigravity-GUI/main.js) to display the custom branding icon in the title bar and Windows taskbar at runtime, and rebuilt the installer.
 
 ## Next Action
 <!-- AGENT-MAINTAINED: update during work -->
-- Start the application, click "Check Updates" and verify the update text updates properly without layout breakage or font-size expansion, and that the cursor regains focus.
+- Start the application and verify that the window title bar and taskbar display the custom Antigravity app logo icon instead of the default Electron logo.
 
 ## Last Sync
 <!-- AGENT-MAINTAINED: update during work -->
 - date: 2026-06-20
-- status: update-button-layout-fixed
+- status: window-icon-configured
 - linked_project_note: E:\Vault\02_Projects\Antigravity-GUI.md
 
 
