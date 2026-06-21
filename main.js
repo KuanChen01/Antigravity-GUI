@@ -579,6 +579,78 @@ ipcMain.handle('cli:login-agy', async () => {
   return { success: true };
 });
 
+function getLoginStatusFromLogs() {
+  try {
+    const cliDir = getCliDir();
+    const logDir = path.join(cliDir, 'log');
+    if (!fs.existsSync(logDir)) {
+      return { loggedIn: false };
+    }
+    
+    // Read files in log folder
+    let files = fs.readdirSync(logDir);
+    files = files.filter(f => f.startsWith('cli-') && f.endsWith('.log'));
+    
+    // Sort by mtime descending (newest first)
+    const filesWithTime = [];
+    for (const file of files) {
+      try {
+        const filePath = path.join(logDir, file);
+        const stat = fs.statSync(filePath);
+        filesWithTime.push({ filePath, mtime: stat.mtimeMs });
+      } catch (e) {
+        // Ignore files that fail stat
+      }
+    }
+    filesWithTime.sort((a, b) => b.mtime - a.mtime);
+    
+    // Limit to scanning the most recent 10 files
+    const filesToScan = filesWithTime.slice(0, 10);
+    
+    // Check main cli.log too if it exists
+    const mainLogPath = path.join(cliDir, 'cli.log');
+    if (fs.existsSync(mainLogPath)) {
+      try {
+        const stat = fs.statSync(mainLogPath);
+        filesToScan.unshift({ filePath: mainLogPath, mtime: stat.mtimeMs });
+      } catch (e) {}
+    }
+    
+    // Sort again in case cli.log is newer or older
+    filesToScan.sort((a, b) => b.mtime - a.mtime);
+    
+    for (const fileInfo of filesToScan) {
+      try {
+        const content = fs.readFileSync(fileInfo.filePath, 'utf8');
+        const lines = content.split(/\r?\n/);
+        
+        // Scan lines in reverse chronological order
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i];
+          if (line.includes('OAuth: authenticated successfully as')) {
+            const match = line.match(/OAuth: authenticated successfully as\s+([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+            if (match && match[1]) {
+              return { loggedIn: true, email: match[1] };
+            }
+          }
+          if (line.includes('You are not logged into Antigravity.')) {
+            return { loggedIn: false };
+          }
+        }
+      } catch (e) {
+        // Ignore files that fail to read
+      }
+    }
+  } catch (err) {
+    console.error("Error reading login status from logs:", err);
+  }
+  return { loggedIn: false };
+}
+
+ipcMain.handle('cli:get-login-status', async () => {
+  return getLoginStatusFromLogs();
+});
+
 // Tool Permission Response Stdin writing
 ipcMain.on('cli:permission-response', (event, approved) => {
   if (activeAgyProcess && activeAgyProcess.stdin && activeAgyProcess.stdin.writable) {
@@ -586,3 +658,4 @@ ipcMain.on('cli:permission-response', (event, approved) => {
     activeAgyProcess.stdin.write(response);
   }
 });
+

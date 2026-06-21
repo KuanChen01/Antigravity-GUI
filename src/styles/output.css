@@ -932,6 +932,10 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
+  .border-0 {
+    border-style: var(--tw-border-style);
+    border-width: 0px;
+  }
   .border-2 {
     border-style: var(--tw-border-style);
     border-width: 2px;
@@ -1344,6 +1348,12 @@
   }
   .bg-surface-variant {
     background-color: var(--color-surface-variant);
+  }
+  .bg-surface-variant\/20 {
+    background-color: color-mix(in srgb, #33343e 20%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-surface-variant) 20%, transparent);
+    }
   }
   .bg-surface-variant\/50 {
     background-color: color-mix(in srgb, #33343e 50%, transparent);

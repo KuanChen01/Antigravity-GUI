@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   getChangelog: () => ipcRenderer.invoke('cli:get-changelog'),
   checkForUpdates: () => ipcRenderer.invoke('cli:check-updates'),
   loginAgy: () => ipcRenderer.invoke('cli:login-agy'),
+  getLoginStatus: () => ipcRenderer.invoke('cli:get-login-status'),
   
   // Plugin Management
   getPlugins: () => ipcRenderer.invoke('plugins:list'),

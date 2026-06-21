@@ -63,9 +63,12 @@
     <!-- Footer -->
     <div class="px-4 mt-auto space-y-4">
       <div class="space-y-1">
-        <div class="flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant">
-          <span class="material-symbols-outlined text-[18px]">account_circle</span>
-          <span id="user-plan-label" class="font-label-sm text-label-sm truncate">Developer</span>
+        <div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant bg-surface-variant/20 hover:bg-surface-variant/30 transition-colors">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="material-symbols-outlined text-[18px]" id="user-status-icon">account_circle</span>
+            <span id="user-plan-label" class="font-label-sm text-label-sm truncate">Developer</span>
+          </div>
+          <button id="sidebar-login-btn" class="shrink-0 text-primary hover:text-primary-hover font-label-sm text-label-sm bg-transparent border-0 p-0 ml-2 cursor-pointer hover:underline hidden" data-i18n="LOGIN">Login</button>
         </div>
         <button id="check-updates-btn" class="w-full flex items-center gap-3 px-2 py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors">
           <span class="material-symbols-outlined text-[18px]">update</span>

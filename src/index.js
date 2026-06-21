@@ -59,7 +59,8 @@ const TRANSLATIONS = {
     "TOOLS_MCP_COMMAND_PLACEHOLDER": "e.g. node, python, docker",
     "TOOLS_MCP_ARGS": "Arguments (JSON array or space-separated)",
     "TOOLS_MCP_ARGS_PLACEHOLDER": 'e.g. ["dist/index.js"] or dist/index.js',
-    "TOOLS_MCP_ADD_BTN": "Add MCP Server"
+    "TOOLS_MCP_ADD_BTN": "Add MCP Server",
+    "LOGIN": "Login"
   },
   zh: {
     "NAV_CONVERSATIONS": "会话列表",
@@ -113,7 +114,8 @@ const TRANSLATIONS = {
     "TOOLS_MCP_COMMAND_PLACEHOLDER": "例如：node, python, docker",
     "TOOLS_MCP_ARGS": "执行参数 (JSON 数组或空格分隔)",
     "TOOLS_MCP_ARGS_PLACEHOLDER": '例如：["dist/index.js"] 或 dist/index.js',
-    "TOOLS_MCP_ADD_BTN": "添加服务器"
+    "TOOLS_MCP_ADD_BTN": "添加服务器",
+    "LOGIN": "登录"
   }
 };
 
@@ -188,6 +190,43 @@ const permissionDetails = document.getElementById('permission-details');
 const approvePermissionBtn = document.getElementById('approve-permission-btn');
 const denyPermissionBtn = document.getElementById('deny-permission-btn');
 
+let isUserLoggedIn = false;
+let loggedInEmail = '';
+
+async function updateLoginStatus() {
+  try {
+    const status = await window.api.getLoginStatus();
+    isUserLoggedIn = status.loggedIn;
+    loggedInEmail = status.email || '';
+    
+    const userPlanLabel = document.getElementById('user-plan-label');
+    const sidebarLoginBtn = document.getElementById('sidebar-login-btn');
+    const userStatusIcon = document.getElementById('user-status-icon');
+    
+    if (userPlanLabel) {
+      if (isUserLoggedIn) {
+        userPlanLabel.textContent = loggedInEmail;
+        userPlanLabel.title = loggedInEmail;
+        if (sidebarLoginBtn) sidebarLoginBtn.classList.add('hidden');
+        if (userStatusIcon) {
+          userStatusIcon.classList.add('text-emerald-500');
+          userStatusIcon.classList.remove('text-on-surface-variant');
+        }
+      } else {
+        userPlanLabel.textContent = currentLanguage === 'zh' ? '未登录' : 'Not Logged In';
+        userPlanLabel.title = '';
+        if (sidebarLoginBtn) sidebarLoginBtn.classList.remove('hidden');
+        if (userStatusIcon) {
+          userStatusIcon.classList.remove('text-emerald-500');
+          userStatusIcon.classList.add('text-on-surface-variant');
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to update login status:", err);
+  }
+}
+
 // Initialize App
 async function init() {
   // Load settings first to obtain default language preference
@@ -208,10 +247,22 @@ async function init() {
   connectionDot.title = 'Connected';
   authStatusLabel.textContent = currentLanguage === 'zh' ? '专业版 • 已连接' : 'Pro Plan • Connected';
   
-  const userPlanLabel = document.getElementById('user-plan-label');
-  if (userPlanLabel) {
-    userPlanLabel.textContent = currentLanguage === 'zh' ? '开发者' : 'Developer';
+  await updateLoginStatus();
+  
+  // Bind sidebar login click handler
+  const sidebarLoginBtn = document.getElementById('sidebar-login-btn');
+  if (sidebarLoginBtn) {
+    sidebarLoginBtn.addEventListener('click', async () => {
+      await window.api.loginAgy();
+      // Instantly start checking status periodically
+      setTimeout(updateLoginStatus, 2000);
+      setTimeout(updateLoginStatus, 5000);
+      setTimeout(updateLoginStatus, 10000);
+    });
   }
+  
+  // Periodic poll of login status
+  setInterval(updateLoginStatus, 5000);
   
   // Load default view
   await navigateTo('conversation');
@@ -1519,10 +1570,7 @@ async function initSettingsView() {
           
           // Re-translate index navigation labels
           authStatusLabel.textContent = currentLanguage === 'zh' ? '专业版 • 已连接' : 'Pro Plan • Connected';
-          const userPlanLabel = document.getElementById('user-plan-label');
-          if (userPlanLabel) {
-            userPlanLabel.textContent = currentLanguage === 'zh' ? '开发者' : 'Developer';
-          }
+          await updateLoginStatus();
           
           const titles = {
             conversation: currentLanguage === 'zh' ? '会话控制台' : 'Conversations Workspace',
