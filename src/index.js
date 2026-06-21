@@ -587,7 +587,7 @@ async function initConversationView() {
       inputBorderContainer.classList.remove('border-primary', 'bg-primary/5');
     });
 
-    inputBorderContainer.addEventListener('drop', (e) => {
+    inputBorderContainer.addEventListener('drop', async (e) => {
       e.preventDefault();
       e.stopPropagation();
       inputBorderContainer.classList.remove('border-primary', 'bg-primary/5');
