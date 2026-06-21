@@ -196,6 +196,87 @@ function extractWorkspacePath(buffer) {
   return null;
 }
 
+function isSamePath(p1, p2) {
+  if (!p1 || !p2) return false;
+  const n1 = p1.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
+  const n2 = p2.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
+  return n1 === n2;
+}
+
+// Filter workspaces list based on conversation step evidence if we have multiple candidates
+function filterWorkspacesByEvidence(db, workspaces) {
+  if (workspaces.length <= 1) {
+    return workspaces;
+  }
+
+  // 1. Look for explicit project path pattern in step 14 (user prompt)
+  try {
+    const promptRows = db.prepare("SELECT step_payload FROM steps WHERE step_type = 14 ORDER BY idx ASC").all();
+    for (const row of promptRows) {
+      if (row.step_payload) {
+        const tree = parseProto(row.step_payload);
+        const strings = extractAllStrings(tree);
+        for (const str of strings) {
+          const match = str.match(/(?:项目路径|Project Path)\s*[：:]\s*([^\r\n]+)/i);
+          if (match) {
+            const detectedPath = match[1].trim();
+            const matched = workspaces.find(ws => isSamePath(ws, detectedPath));
+            if (matched) {
+              return [matched];
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to query steps for prompt text:", e);
+  }
+
+  // 2. Scan all step payloads for references to a single workspace
+  try {
+    const steps = db.prepare("SELECT step_payload FROM steps WHERE step_payload IS NOT NULL").all();
+    const workspaceCounts = new Array(workspaces.length).fill(0);
+    
+    for (const step of steps) {
+      const tree = parseProto(step.step_payload);
+      const strings = extractAllStrings(tree);
+      
+      for (const str of strings) {
+        for (let i = 0; i < workspaces.length; i++) {
+          const ws = workspaces[i];
+          const normStr = str.replace(/[\\/]+/g, '/').toLowerCase();
+          const normWs = ws.replace(/[\\/]+/g, '/').toLowerCase();
+          
+          if (normStr.includes(normWs) && normStr !== normWs && !normStr.includes(normWs + '/..')) {
+            workspaceCounts[i]++;
+          }
+        }
+      }
+    }
+    
+    let maxRefs = 0;
+    let bestIndex = -1;
+    let tie = false;
+    for (let i = 0; i < workspaceCounts.length; i++) {
+      if (workspaceCounts[i] > maxRefs) {
+        maxRefs = workspaceCounts[i];
+        bestIndex = i;
+        tie = false;
+      } else if (workspaceCounts[i] === maxRefs && maxRefs > 0) {
+        tie = true;
+      }
+    }
+    
+    if (bestIndex !== -1 && !tie) {
+      return [workspaces[bestIndex]];
+    }
+  } catch (e) {
+    console.error("Failed to scan steps for subpath reference:", e);
+  }
+
+  return [workspaces[0]];
+}
+
 // List all local conversations
 function listConversations() {
   const cliDir = getCliDir();
@@ -252,6 +333,14 @@ function listConversations() {
       // Ensure workspaces has at least workspace if it is valid
       if (workspace !== 'Unknown Workspace' && !workspaces.includes(workspace)) {
         workspaces.push(workspace);
+      }
+      
+      // Filter workspaces list based on conversation step evidence if we have multiple candidates
+      if (workspaces.length > 1) {
+        workspaces = filterWorkspacesByEvidence(db, workspaces);
+        if (workspaces.length > 0) {
+          workspace = workspaces[0];
+        }
       }
       
       // Get cascade_id (conversation id)
