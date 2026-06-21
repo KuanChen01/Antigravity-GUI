@@ -6,6 +6,39 @@ let isRunning = false;
 let currentLanguage = 'en';
 let pendingNewConversationContext = null;
 
+// Dialog wrappers to prevent focus loss in Electron
+async function appConfirm(message, title = '') {
+  if (window.api && window.api.showConfirm) {
+    return await window.api.showConfirm({
+      message,
+      title: title || (currentLanguage === 'zh' ? '确认' : 'Confirm'),
+      confirmLabel: currentLanguage === 'zh' ? '确定' : 'OK',
+      cancelLabel: currentLanguage === 'zh' ? '取消' : 'Cancel'
+    });
+  }
+  const confirmed = confirm(message);
+  window.focus();
+  const promptInput = document.getElementById('prompt-input');
+  if (promptInput) promptInput.focus();
+  return confirmed;
+}
+
+async function appAlert(message, title = '') {
+  if (window.api && window.api.showAlert) {
+    await window.api.showAlert({
+      message,
+      title: title || (currentLanguage === 'zh' ? '提示' : 'Alert')
+    });
+    const promptInput = document.getElementById('prompt-input');
+    if (promptInput) promptInput.focus();
+    return;
+  }
+  alert(message);
+  window.focus();
+  const promptInput = document.getElementById('prompt-input');
+  if (promptInput) promptInput.focus();
+}
+
 // Translations Dictionary
 const TRANSLATIONS = {
   en: {
@@ -462,15 +495,15 @@ async function initConversationView() {
   promptInput.addEventListener('input', updateInputState);
 
   // Helper to handle attached/dropped image file
-  function handleAttachedImage(file) {
+  async function handleAttachedImage(file) {
     if (!activeWorkspace) {
-      alert(currentLanguage === 'zh' ? '请先选择一个工作区，再上传图片！' : 'Please select a workspace before attaching images!');
+      await appAlert(currentLanguage === 'zh' ? '请先选择一个工作区，再上传图片！' : 'Please select a workspace before attaching images!');
       return;
     }
     
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert(currentLanguage === 'zh' ? '图片大小超过限制（最大 5MB）' : 'Image size exceeds the limit (Max 5MB)');
+      await appAlert(currentLanguage === 'zh' ? '图片大小超过限制（最大 5MB）' : 'Image size exceeds the limit (Max 5MB)');
       return;
     }
 
@@ -496,7 +529,7 @@ async function initConversationView() {
           tempImagesToDelete.push(res.filePath);
           updateInputState();
         } else {
-          alert(`Save failed: ${res.error}`);
+          await appAlert(`Save failed: ${res.error}`);
         }
       } catch (err) {
         console.error("Save image error:", err);
@@ -565,7 +598,7 @@ async function initConversationView() {
         if (file.type.indexOf('image') !== -1) {
           handleAttachedImage(file);
         } else {
-          alert(currentLanguage === 'zh' ? '仅支持拖拽图片文件！' : 'Only image files are supported!');
+          await appAlert(currentLanguage === 'zh' ? '仅支持拖拽图片文件！' : 'Only image files are supported!');
         }
       }
     });
@@ -972,10 +1005,7 @@ async function initConversationView() {
           ? '确定要永久删除此会话吗？此操作无法撤销。' 
           : 'Are you sure you want to permanently delete this conversation? This action cannot be undone.';
         
-        const confirmed = confirm(confirmMsg);
-        // Restore focus to window and input box to prevent Electron focus loss after native confirm
-        window.focus();
-        promptInput.focus();
+        const confirmed = await appConfirm(confirmMsg);
         
         if (confirmed) {
           try {
@@ -999,15 +1029,15 @@ async function initConversationView() {
                 if (wsLabel) wsLabel.textContent = currentLanguage === 'zh' ? '无活跃会话' : 'No Active Session';
               }
               loadConversations();
+              
+              // Force refocus the input box after deletion
+              const pInput = document.getElementById('prompt-input');
+              if (pInput) pInput.focus();
             } else {
-              alert(currentLanguage === 'zh' ? `删除失败: ${res.error}` : `Delete failed: ${res.error}`);
-              window.focus();
-              promptInput.focus();
+              await appAlert(currentLanguage === 'zh' ? `删除失败: ${res.error}` : `Delete failed: ${res.error}`);
             }
           } catch (err) {
-            alert(currentLanguage === 'zh' ? `删除出错: ${err.message}` : `Delete error: ${err.message}`);
-            window.focus();
-            promptInput.focus();
+            await appAlert(currentLanguage === 'zh' ? `删除出错: ${err.message}` : `Delete error: ${err.message}`);
           }
         }
       });
@@ -1508,8 +1538,7 @@ async function initWorkspaceView() {
             ? `您确定要删除工作区 "${pathBasename(wsPath)}" 吗？此操作仅取消注册，不会删除磁盘上的物理文件夹。`
             : `Are you sure you want to remove the workspace "${pathBasename(wsPath)}"? This only removes the registration and will not delete your local files.`;
           
-          if (confirm(confirmMsg)) {
-            window.focus();
+          if (await appConfirm(confirmMsg)) {
             try {
               const res = await window.api.removeWorkspace(wsPath);
               if (res.success) {
@@ -1518,15 +1547,11 @@ async function initWorkspaceView() {
                 }
                 await loadWorkspaces();
               } else {
-                alert(currentLanguage === 'zh' ? `删除工作区失败：${res.error}` : `Failed to remove workspace: ${res.error}`);
-                window.focus();
+                await appAlert(currentLanguage === 'zh' ? `删除工作区失败：${res.error}` : `Failed to remove workspace: ${res.error}`);
               }
             } catch (err) {
-              alert(`Error: ${err.message}`);
-              window.focus();
+              await appAlert(`Error: ${err.message}`);
             }
-          } else {
-            window.focus();
           }
         });
       });
@@ -1544,7 +1569,7 @@ async function initWorkspaceView() {
         activeWorkspace = wsPath;
         loadWorkspaces();
       } else {
-        alert(`Failed to add workspace: ${res.error || 'unknown error'}`);
+        await appAlert(`Failed to add workspace: ${res.error || 'unknown error'}`);
         loadWorkspaces();
       }
     }
@@ -1599,14 +1624,14 @@ async function initToolsView() {
           const confirmMsg = currentLanguage === 'zh' 
             ? `您确定要卸载 ${name} 吗？` 
             : `Are you sure you want to uninstall ${name}?`;
-          if (confirm(confirmMsg)) {
+          if (await appConfirm(confirmMsg)) {
             listContainer.innerHTML = `<div class="text-center py-8 text-outline animate-pulse">${currentLanguage === 'zh' ? '正在卸载...' : 'Uninstalling...'}</div>`;
             const res = await window.api.uninstallPlugin(name);
             if (res.success) {
               loadPlugins();
             } else {
               const failMsg = currentLanguage === 'zh' ? `卸载失败：\n${res.output}` : `Uninstall failed:\n${res.output}`;
-              alert(failMsg);
+              await appAlert(failMsg);
               loadPlugins();
             }
           }
@@ -1676,7 +1701,7 @@ async function initToolsView() {
             freshConfig.mcpServers[name].disabled = newDisabled;
             const res = await window.api.saveMcpConfig(freshConfig);
             if (!res.success) {
-              alert(currentLanguage === 'zh' ? `操作失败：${res.error}` : `Operation failed: ${res.error}`);
+              await appAlert(currentLanguage === 'zh' ? `操作失败：${res.error}` : `Operation failed: ${res.error}`);
             }
           }
           loadMcpServers();
@@ -1691,14 +1716,14 @@ async function initToolsView() {
             ? `您确定要删除自定义 MCP 服务 ${name} 吗？` 
             : `Are you sure you want to delete the custom MCP server ${name}?`;
             
-          if (confirm(confirmMsg)) {
+          if (await appConfirm(confirmMsg)) {
             mcpListContainer.innerHTML = `<div class="text-center py-8 text-outline animate-pulse">${currentLanguage === 'zh' ? '正在保存配置...' : 'Saving config...'}</div>`;
             const freshConfig = await window.api.getMcpConfig();
             if (freshConfig.mcpServers && freshConfig.mcpServers[name]) {
               delete freshConfig.mcpServers[name];
               const res = await window.api.saveMcpConfig(freshConfig);
               if (!res.success) {
-                alert(currentLanguage === 'zh' ? `删除失败：${res.error}` : `Delete failed: ${res.error}`);
+                await appAlert(currentLanguage === 'zh' ? `删除失败：${res.error}` : `Delete failed: ${res.error}`);
               }
             }
             loadMcpServers();
@@ -1746,7 +1771,7 @@ async function initToolsView() {
     const argsStr = mcpArgsInput.value.trim();
     
     if (!name || !command) {
-      alert(currentLanguage === 'zh' ? '请输入服务名称和命令。' : 'Please provide both server name and command.');
+      await appAlert(currentLanguage === 'zh' ? '请输入服务名称和命令。' : 'Please provide both server name and command.');
       return;
     }
     
@@ -1781,10 +1806,10 @@ async function initToolsView() {
         mcpArgsInput.value = '';
         loadMcpServers();
       } else {
-        alert(currentLanguage === 'zh' ? `添加失败：${res.error}` : `Failed to add: ${res.error}`);
+        await appAlert(currentLanguage === 'zh' ? `添加失败：${res.error}` : `Failed to add: ${res.error}`);
       }
     } catch (e) {
-      alert(`Error: ${e.message}`);
+      await appAlert(`Error: ${e.message}`);
     } finally {
       mcpAddBtn.disabled = false;
     }
@@ -1877,10 +1902,10 @@ async function initSettingsView() {
           saveMsg.className = 'self-center font-label-sm text-label-sm text-emerald-500 transition-opacity opacity-0';
         }, 3000);
       } else {
-        alert(`Save failed: ${res.error}`);
+        await appAlert(`Save failed: ${res.error}`);
       }
     } catch (e) {
-      alert(`Save failed: ${e.message}`);
+      await appAlert(`Save failed: ${e.message}`);
     }
   });
 
@@ -1963,15 +1988,9 @@ function setupUpdateChecker() {
     
     try {
       const res = await window.api.checkForUpdates();
-      alert(res.output);
-      window.focus();
-      const promptInput = document.getElementById('prompt-input');
-      if (promptInput) promptInput.focus();
+      await appAlert(res.output);
     } catch (e) {
-      alert(currentLanguage === 'zh' ? `检查更新失败: ${e.message}` : `Check updates failed: ${e.message}`);
-      window.focus();
-      const promptInput = document.getElementById('prompt-input');
-      if (promptInput) promptInput.focus();
+      await appAlert(currentLanguage === 'zh' ? `检查更新失败: ${e.message}` : `Check updates failed: ${e.message}`);
     } finally {
       checkUpdatesBtn.disabled = false;
       if (!isUpdateReady && textSpan) {
@@ -2005,14 +2024,15 @@ function setupUpdateChecker() {
         if (textSpan) {
           textSpan.textContent = currentLanguage === 'zh' ? '重启安装' : 'Restart Install';
         }
-        const installConfirm = confirm(currentLanguage === 'zh'
+        const confirmMsg = currentLanguage === 'zh'
           ? `新版本 GUI ${payload.version} 已下载完成。\n是否立即重启应用并完成安装？`
-          : `New GUI version ${payload.version} is downloaded.\nWould you like to restart the app and install now?`
-        );
-        window.focus();
-        if (installConfirm) {
-          window.api.quitAndInstallApp();
-        }
+          : `New GUI version ${payload.version} is downloaded.\nWould you like to restart the app and install now?`;
+        
+        appConfirm(confirmMsg).then((installConfirm) => {
+          if (installConfirm) {
+            window.api.quitAndInstallApp();
+          }
+        });
         break;
     }
   });

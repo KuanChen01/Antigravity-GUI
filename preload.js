@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('api', {
   addWorkspace: (wsPath) => ipcRenderer.invoke('config:add-workspace', wsPath),
   removeWorkspace: (wsPath) => ipcRenderer.invoke('config:remove-workspace', wsPath),
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
+  showConfirm: (options) => ipcRenderer.invoke('dialog:confirm', options),
+  showAlert: (options) => ipcRenderer.invoke('dialog:alert', options),
   
   // CLI Executions
   runPrompt: (prompt, conversationId, workspacePath, mode) => ipcRenderer.invoke('cli:run-prompt', prompt, conversationId, workspacePath, mode),

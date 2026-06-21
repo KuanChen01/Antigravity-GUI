@@ -366,6 +366,30 @@ ipcMain.handle('dialog:select-directory', async () => {
   return result.filePaths[0];
 });
 
+ipcMain.handle('dialog:confirm', async (event, options) => {
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    buttons: [options.cancelLabel || 'Cancel', options.confirmLabel || 'OK'],
+    defaultId: 1,
+    cancelId: 0,
+    title: options.title || 'Confirm',
+    message: options.message || '',
+    detail: options.detail || ''
+  });
+  return result.response === 1;
+});
+
+ipcMain.handle('dialog:alert', async (event, options) => {
+  await dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    buttons: ['OK'],
+    defaultId: 0,
+    title: options.title || 'Alert',
+    message: options.message || '',
+    detail: options.detail || ''
+  });
+});
+
 // Plugins management
 ipcMain.handle('plugins:list', async () => {
   return new Promise((resolve) => {
