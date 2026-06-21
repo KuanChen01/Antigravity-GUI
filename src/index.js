@@ -40,8 +40,8 @@ const TRANSLATIONS = {
     "SETTINGS_DIAG_DIR": "CLI Configuration Dir:",
     "SETTINGS_DIAG_LS": "Active Language Server:",
     "SETTINGS_DIAG_SESSION": "Active Session ID:",
-    "SETTINGS_VIEW_CHANGELOG": "View Changelog",
     "SETTINGS_RUN_DIAG": "Run Diagnostics",
+    "SETTINGS_LOGIN_BTN": "Login to CLI",
     "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI Changelog",
     "TOOLS_HEADER": "Tools & Plugins",
     "TOOLS_DESC": "Configure external plugin packages, custom commands, and MCP server transports.",
@@ -94,8 +94,8 @@ const TRANSLATIONS = {
     "SETTINGS_DIAG_DIR": "CLI 配置文件目录：",
     "SETTINGS_DIAG_LS": "活动的语言服务器：",
     "SETTINGS_DIAG_SESSION": "活动的会话 ID：",
-    "SETTINGS_VIEW_CHANGELOG": "查看更新日志",
     "SETTINGS_RUN_DIAG": "运行系统诊断",
+    "SETTINGS_LOGIN_BTN": "登录 CLI",
     "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI 更新日志",
     "TOOLS_HEADER": "工具与扩展插件",
     "TOOLS_DESC": "配置外部插件包、自定义命令以及 MCP 服务端传输协议。",
@@ -1477,6 +1477,7 @@ async function initSettingsView() {
   const sessionId = document.getElementById('diag-session-id');
   const changelogBtn = document.getElementById('cli-changelog-btn');
   const refreshDiagBtn = document.getElementById('refresh-diag-btn');
+  const loginBtn = document.getElementById('cli-login-btn');
   const changelogModal = document.getElementById('changelog-modal');
   const changelogContent = document.getElementById('changelog-content');
   const closeChangelogBtn = document.getElementById('close-changelog-btn');
@@ -1561,6 +1562,12 @@ async function initSettingsView() {
   }
 
   refreshDiagBtn.addEventListener('click', runDiagnostics);
+
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      await window.api.loginAgy();
+    });
+  }
 
   changelogBtn.addEventListener('click', async () => {
     changelogModal.classList.remove('hidden');

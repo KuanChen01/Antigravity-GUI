@@ -28,6 +28,31 @@ function getAgyExecutablePath() {
   return 'agy.exe';
 }
 
+function spawnAgy(args, options = {}) {
+  const agyBin = getAgyExecutablePath();
+  const agyDir = path.dirname(agyBin);
+  
+  const env = { ...process.env, ...(options.env || {}) };
+  
+  // Ensure the directory containing agy.exe is in the PATH so that it can spawn sibling binaries (like language_server.exe)
+  if (agyDir && fs.existsSync(agyDir)) {
+    const pathKey = process.platform === 'win32' ? 'Path' : 'PATH';
+    const oldPath = env[pathKey] || '';
+    if (process.platform === 'win32') {
+      env[pathKey] = `${agyDir};${oldPath}`;
+    } else {
+      env[pathKey] = `${agyDir}:${oldPath}`;
+    }
+  }
+  
+  const spawnOptions = {
+    ...options,
+    env
+  };
+  
+  return spawn(agyBin, args, spawnOptions);
+}
+
 // Spawn the SQLite Database Utility Process
 function initDbWorker() {
   if (dbWorker) return;
@@ -203,8 +228,7 @@ ipcMain.handle('config:get-workspaces', async () => {
 
 ipcMain.handle('config:add-workspace', async (event, wsPath) => {
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['--add-dir', wsPath]);
+    const child = spawnAgy(['--add-dir', wsPath]);
     
     child.on('close', (code) => {
       resolve({ success: code === 0, exitCode: code });
@@ -306,8 +330,7 @@ ipcMain.handle('dialog:select-directory', async () => {
 // Plugins management
 ipcMain.handle('plugins:list', async () => {
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['plugin', 'list']);
+    const child = spawnAgy(['plugin', 'list']);
     let output = '';
     
     child.stdout.on('data', (data) => {
@@ -325,13 +348,16 @@ ipcMain.handle('plugins:list', async () => {
         resolve({ error: `JSON Parse error: ${e.message}`, raw: output });
       }
     });
+
+    child.on('error', (err) => {
+      resolve({ error: `Failed to spawn agy: ${err.message}` });
+    });
   });
 });
 
 ipcMain.handle('plugins:install', async (event, name) => {
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['plugin', 'install', name]);
+    const child = spawnAgy(['plugin', 'install', name]);
     let output = '';
     
     child.stdout.on('data', (data) => {
@@ -343,14 +369,17 @@ ipcMain.handle('plugins:install', async (event, name) => {
     
     child.on('close', (code) => {
       resolve({ success: code === 0, output });
+    });
+
+    child.on('error', (err) => {
+      resolve({ success: false, error: err.message });
     });
   });
 });
 
 ipcMain.handle('plugins:uninstall', async (event, name) => {
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['plugin', 'uninstall', name]);
+    const child = spawnAgy(['plugin', 'uninstall', name]);
     let output = '';
     
     child.stdout.on('data', (data) => {
@@ -362,6 +391,10 @@ ipcMain.handle('plugins:uninstall', async (event, name) => {
     
     child.on('close', (code) => {
       resolve({ success: code === 0, output });
+    });
+
+    child.on('error', (err) => {
+      resolve({ success: false, error: err.message });
     });
   });
 });
@@ -369,8 +402,7 @@ ipcMain.handle('plugins:uninstall', async (event, name) => {
 // Changelog & updates
 ipcMain.handle('cli:get-changelog', async () => {
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['changelog']);
+    const child = spawnAgy(['changelog']);
     let output = '';
     
     child.stdout.on('data', (data) => {
@@ -379,6 +411,10 @@ ipcMain.handle('cli:get-changelog', async () => {
     
     child.on('close', () => {
       resolve(output);
+    });
+
+    child.on('error', (err) => {
+      resolve(`Failed to load changelog: ${err.message}`);
     });
   });
 });
@@ -390,8 +426,7 @@ ipcMain.handle('cli:check-updates', async () => {
   });
 
   return new Promise((resolve) => {
-    const agyBin = getAgyExecutablePath();
-    const child = spawn(agyBin, ['update']);
+    const child = spawnAgy(['update']);
     let output = '';
     
     child.stdout.on('data', (data) => {
@@ -403,6 +438,10 @@ ipcMain.handle('cli:check-updates', async () => {
     
     child.on('close', (code) => {
       resolve({ output, success: code === 0 });
+    });
+
+    child.on('error', (err) => {
+      resolve({ output: `Update check failed to spawn agy: ${err.message}`, success: false });
     });
   });
 });
@@ -469,7 +508,15 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
   delete options.env.ANTIGRAVITY_LS_ADDRESS;
 
   runningConversationId = conversationId || null;
-  activeAgyProcess = spawn(agyBin, args, options);
+  activeAgyProcess = spawnAgy(args, options);
+  
+  activeAgyProcess.on('error', (err) => {
+    console.error("Failed to start agy process:", err);
+    mainWindow.webContents.send('cli:output', { stream: 'stderr', text: `Failed to start agy process: ${err.message}\nPlease make sure Antigravity CLI is installed and in your system PATH.` });
+    mainWindow.webContents.send('cli:exit', -1);
+    activeAgyProcess = null;
+    runningConversationId = null;
+  });
   
   activeAgyProcess.stdout.on('data', (data) => {
     const text = data.toString();
@@ -508,6 +555,28 @@ ipcMain.handle('cli:stop-prompt', async () => {
     return { success: true };
   }
   return { success: false };
+});
+
+ipcMain.handle('cli:login-agy', async () => {
+  const agyBin = getAgyExecutablePath();
+  const agyDir = path.dirname(agyBin);
+  
+  if (process.platform === 'win32') {
+    const cmd = 'cmd.exe';
+    const args = ['/c', 'start', 'cmd.exe', '/k', `"${agyBin}"`];
+    const env = { ...process.env };
+    if (agyDir && fs.existsSync(agyDir)) {
+      const pathKey = 'Path';
+      env[pathKey] = `${agyDir};${env[pathKey] || ''}`;
+    }
+    spawn(cmd, args, { shell: true, env });
+  } else if (process.platform === 'darwin') {
+    const script = `tell application "Terminal" to do script "${agyBin}"`;
+    spawn('osascript', ['-e', script]);
+  } else {
+    spawn('x-terminal-emulator', ['-e', agyBin]);
+  }
+  return { success: true };
 });
 
 // Tool Permission Response Stdin writing

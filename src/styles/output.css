@@ -76,6 +76,7 @@
     --color-primary-container: #4d8eff;
     --color-on-primary-container: #00285d;
     --color-secondary: #c0c1ff;
+    --color-on-secondary: #1000a9;
     --color-secondary-container: #3131c0;
     --color-on-secondary-container: #b0b2ff;
     --color-tertiary: #bcc7de;
@@ -1281,6 +1282,9 @@
   .bg-red-500 {
     background-color: var(--color-red-500);
   }
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
   .bg-secondary-container {
     background-color: var(--color-secondary-container);
   }
@@ -1738,6 +1742,9 @@
   }
   .text-on-primary-container {
     color: var(--color-on-primary-container);
+  }
+  .text-on-secondary {
+    color: var(--color-on-secondary);
   }
   .text-on-secondary-container {
     color: var(--color-on-secondary-container);
