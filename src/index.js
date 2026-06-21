@@ -1986,32 +1986,96 @@ function setupUpdateChecker() {
       textSpan.textContent = currentLanguage === 'zh' ? '正在检查...' : 'Checking...';
     }
     
-    try {
-      const res = await window.api.checkForUpdates();
-      await appAlert(res.output);
-    } catch (e) {
-      await appAlert(currentLanguage === 'zh' ? `检查更新失败: ${e.message}` : `Check updates failed: ${e.message}`);
-    } finally {
+    let cliResult = null;
+    let guiResult = null;
+    let isChecking = true;
+    
+    async function showFinalReport() {
+      if (!isChecking) return;
+      isChecking = false;
       checkUpdatesBtn.disabled = false;
       if (!isUpdateReady && textSpan) {
         textSpan.textContent = currentLanguage === 'zh' ? '检查更新' : 'Check Updates';
       }
+      
+      const guiMsg = guiResult 
+        ? guiResult 
+        : (currentLanguage === 'zh' ? 'GUI 未检测到新版本' : 'GUI check status: no updates');
+      const cliMsg = cliResult 
+        ? cliResult.trim() 
+        : (currentLanguage === 'zh' ? 'CLI 状态未知' : 'CLI status unknown');
+        
+      const title = currentLanguage === 'zh' ? '检查更新结果' : 'Check Update Results';
+      const separator = '-----------------------------------';
+      const finalMsg = `${currentLanguage === 'zh' ? '【GUI 客户端】' : '[GUI Client]'}\n${guiMsg}\n\n${separator}\n\n${currentLanguage === 'zh' ? '【CLI 底层工具】' : '[CLI Core Tool]'}\n${cliMsg}`;
+      
+      await appAlert(finalMsg, title);
+    }
+    
+    const safetyTimeout = setTimeout(async () => {
+      if (isChecking) {
+        if (!guiResult) {
+          guiResult = currentLanguage === 'zh' 
+            ? 'GUI 检查超时' 
+            : 'GUI check timeout';
+        }
+        await showFinalReport();
+      }
+    }, 12000);
+    
+    // 1. Listen for the GUI update check status via the IPC events
+    const removeStatusListener = window.api.onUpdaterStatus(async ({ status, payload }) => {
+      if (!isChecking) return;
+      
+      const currentVersion = await window.api.getVersion();
+      
+      if (status === 'update-not-available') {
+        guiResult = currentLanguage === 'zh' 
+          ? `当前已是最新版本 (v${currentVersion})，无更新可用` 
+          : `You are already running the latest version (v${currentVersion})`;
+        removeStatusListener();
+        if (cliResult !== null) {
+          clearTimeout(safetyTimeout);
+          await showFinalReport();
+        }
+      } else if (status === 'update-available') {
+        guiResult = currentLanguage === 'zh'
+          ? `发现新版本 (v${payload.version})，已开始在后台下载...`
+          : `New version (v${payload.version}) available, download started in background...`;
+        removeStatusListener();
+        if (cliResult !== null) {
+          clearTimeout(safetyTimeout);
+          await showFinalReport();
+        }
+      } else if (status === 'error') {
+        guiResult = currentLanguage === 'zh'
+          ? `检查失败: ${payload}`
+          : `Check failed: ${payload}`;
+        removeStatusListener();
+        if (cliResult !== null) {
+          clearTimeout(safetyTimeout);
+          await showFinalReport();
+        }
+      }
+    });
+
+    // 2. Perform the CLI check and trigger GUI updater check
+    try {
+      const res = await window.api.checkForUpdates();
+      cliResult = res.output;
+    } catch (e) {
+      cliResult = currentLanguage === 'zh' ? `检查失败: ${e.message}` : `Check failed: ${e.message}`;
+    }
+    
+    if (guiResult !== null) {
+      clearTimeout(safetyTimeout);
+      await showFinalReport();
     }
   });
 
-  // Listen to updater status from main process
+  // Listen to updater status from main process (for background download progress and ready to install)
   window.api.onUpdaterStatus(({ status, payload }) => {
-    console.log("Updater status event:", status, payload);
     switch (status) {
-      case 'checking-for-update':
-        break;
-      case 'update-available':
-        break;
-      case 'update-not-available':
-        break;
-      case 'error':
-        console.error("Auto-updater error:", payload);
-        break;
       case 'download-progress':
         if (textSpan) {
           const percent = Math.round(payload.percent || 0);

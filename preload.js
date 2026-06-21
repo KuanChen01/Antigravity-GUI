@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
   stopPrompt: () => ipcRenderer.invoke('cli:stop-prompt'),
   getChangelog: () => ipcRenderer.invoke('cli:get-changelog'),
   checkForUpdates: () => ipcRenderer.invoke('cli:check-updates'),
+  getVersion: () => ipcRenderer.invoke('app:get-version'),
   loginAgy: () => ipcRenderer.invoke('cli:login-agy'),
   getLoginStatus: () => ipcRenderer.invoke('cli:get-login-status'),
   

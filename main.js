@@ -241,6 +241,10 @@ ipcMain.handle('config:get-settings', async () => {
   return readCliSettings();
 });
 
+ipcMain.handle('app:get-version', () => {
+  return app.getVersion();
+});
+
 ipcMain.handle('config:save-settings', async (event, newSettings) => {
   const settingsPath = getCliSettingsPath();
   try {
