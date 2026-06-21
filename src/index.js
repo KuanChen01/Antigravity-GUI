@@ -5,6 +5,7 @@ let currentConversationId = null;
 let isRunning = false;
 let currentLanguage = 'en';
 let pendingNewConversationContext = null;
+let openDetailsState = {};
 
 // Dialog wrappers to prevent focus loss in Electron
 async function appConfirm(message, title = '') {
@@ -70,6 +71,7 @@ const TRANSLATIONS = {
     "SETTINGS_SAVE_BTN": "Save Configurations",
     "SETTINGS_SAVE_SUCCESS": "Settings saved successfully!",
     "SETTINGS_DIAG_TITLE": "App Version & Connection Diagnostics",
+    "SETTINGS_DIAG_VERSION": "GUI Client Version:",
     "SETTINGS_DIAG_BIN": "Executable Path:",
     "SETTINGS_DIAG_DIR": "CLI Configuration Dir:",
     "SETTINGS_DIAG_LS": "Active Language Server:",
@@ -127,6 +129,7 @@ const TRANSLATIONS = {
     "SETTINGS_SAVE_BTN": "保存配置信息",
     "SETTINGS_SAVE_SUCCESS": "设置已成功保存！",
     "SETTINGS_DIAG_TITLE": "版本信息与连接状态诊断",
+    "SETTINGS_DIAG_VERSION": "GUI 客户端版本：",
     "SETTINGS_DIAG_BIN": "可执行程序路径：",
     "SETTINGS_DIAG_DIR": "CLI 配置文件目录：",
     "SETTINGS_DIAG_LS": "活动的语言服务器：",
@@ -279,6 +282,17 @@ async function init() {
   setupNavigation();
   setupPermissionHandlers();
   setupUpdateChecker();
+  
+  // Load and display app version
+  try {
+    const version = await window.api.getVersion();
+    const versionSpan = document.getElementById('sidebar-app-version');
+    if (versionSpan) {
+      versionSpan.textContent = `v${version}`;
+    }
+  } catch (e) {
+    console.error("Failed to load app version:", e);
+  }
   
   // Set active connections
   connectionDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
@@ -707,6 +721,16 @@ async function initConversationView() {
     // Delay slightly to allow click event on suggestion item to register
     setTimeout(hideAutocomplete, 180);
   });
+
+  chatMessages.addEventListener('toggle', (e) => {
+    const details = e.target;
+    if (details && details.tagName === 'DETAILS') {
+      const id = details.getAttribute('data-details-id');
+      if (id) {
+        openDetailsState[id] = details.open;
+      }
+    }
+  }, true);
 
   // Mode buttons were removed; plain prompts should remain plain unless the user types an explicit slash command.
   let activeMode = null;
@@ -1228,9 +1252,12 @@ async function initConversationView() {
           ? `已执行 ${turn.executionSteps.length} 个后台步骤` 
           : `${turn.executionSteps.length} background steps executed`;
 
+        const detailsId = `${currentConversationId || runTracking.liveConversationId}_${turnIdx}_steps`;
+        const isOpen = !!openDetailsState[detailsId];
+
         html += `
           <div class="my-4 select-none">
-            <details class="group bg-surface-container-lowest/80 border border-outline-variant/60 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+            <details data-details-id="${detailsId}" ${isOpen ? 'open' : ''} class="group bg-surface-container-lowest/80 border border-outline-variant/60 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
               <summary class="flex items-center justify-between p-3.5 cursor-pointer hover:bg-surface-container-low transition-colors select-none font-label-md">
                 <div class="flex items-center gap-2.5 text-on-surface">
                   <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center transition-all group-open:bg-primary/20">
@@ -1256,8 +1283,10 @@ async function initConversationView() {
         
         let thoughtsHtml = '';
         if (turn.agentResponse.message.thoughts) {
+          const thoughtsId = `${currentConversationId || runTracking.liveConversationId}_${turnIdx}_thoughts`;
+          const isThoughtsOpen = !!openDetailsState[thoughtsId];
           thoughtsHtml = `
-            <details class="mb-3 text-label-sm text-on-surface-variant bg-surface-container/60 rounded border border-outline-variant/40 p-2.5">
+            <details data-details-id="${thoughtsId}" ${isThoughtsOpen ? 'open' : ''} class="mb-3 text-label-sm text-on-surface-variant bg-surface-container/60 rounded border border-outline-variant/40 p-2.5">
               <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
                 ${currentLanguage === 'zh' ? '查看思考过程' : 'View Thinking Process'}
@@ -1834,6 +1863,7 @@ async function initSettingsView() {
   const configDir = document.getElementById('diag-config-dir');
   const lsAddress = document.getElementById('diag-ls-address');
   const sessionId = document.getElementById('diag-session-id');
+  const appVersionSpan = document.getElementById('diag-app-version');
   const changelogBtn = document.getElementById('cli-changelog-btn');
   const refreshDiagBtn = document.getElementById('refresh-diag-btn');
   const loginBtn = document.getElementById('cli-login-btn');
@@ -1855,6 +1885,15 @@ async function initSettingsView() {
       }
       if (inpProxy) {
         inpProxy.value = currentSettings.proxy || '';
+      }
+      
+      if (appVersionSpan) {
+        try {
+          const version = await window.api.getVersion();
+          appVersionSpan.textContent = `v${version}`;
+        } catch (err) {
+          console.error("Failed to load settings app version:", err);
+        }
       }
     } catch (e) {
       console.error("Load settings failed:", e);
@@ -1915,12 +1954,22 @@ async function initSettingsView() {
     configDir.textContent = 'loading...';
     lsAddress.textContent = 'loading...';
     sessionId.textContent = 'loading...';
+    if (appVersionSpan) appVersionSpan.textContent = 'loading...';
     
     // Resolve diagnostics values dynamically from main process API
     binPath.textContent = 'C:\\Users\\...\\AppData\\Local\\agy\\bin\\agy.exe (Resolved)';
     configDir.textContent = '~\\.gemini\\antigravity-cli (Active)';
     lsAddress.textContent = 'localhost:56695 (gRPC) / localhost:56696 (HTTP)';
     sessionId.textContent = '251c8c35-72a0-4587-a5b6-bfb733ebc963';
+    
+    if (appVersionSpan) {
+      try {
+        const version = await window.api.getVersion();
+        appVersionSpan.textContent = `v${version}`;
+      } catch (err) {
+        appVersionSpan.textContent = 'Error';
+      }
+    }
   }
 
   refreshDiagBtn.addEventListener('click', runDiagnostics);

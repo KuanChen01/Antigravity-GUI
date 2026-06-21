@@ -37,6 +37,7 @@
     --text-lg--line-height: calc(1.75 / 1.125);
     --text-xl: 1.25rem;
     --text-xl--line-height: calc(1.75 / 1.25);
+    --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
@@ -1247,6 +1248,12 @@
   .bg-outline-variant {
     background-color: var(--color-outline-variant);
   }
+  .bg-outline-variant\/10 {
+    background-color: color-mix(in srgb, #424754 10%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-outline-variant) 10%, transparent);
+    }
+  }
   .bg-outline-variant\/50 {
     background-color: color-mix(in srgb, #424754 50%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -1586,6 +1593,9 @@
   .font-label-sm {
     font-family: var(--font-label-sm);
   }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
   .font-sans {
     font-family: var(--font-sans);
   }
@@ -1607,6 +1617,9 @@
   }
   .text-\[9\.5px\] {
     font-size: 9.5px;
+  }
+  .text-\[9px\] {
+    font-size: 9px;
   }
   .text-\[10px\] {
     font-size: 10px;
@@ -1660,6 +1673,10 @@
     --tw-leading: var(--leading-tight) !important;
     line-height: var(--leading-tight) !important;
   }
+  .leading-4 {
+    --tw-leading: calc(var(--spacing) * 4);
+    line-height: calc(var(--spacing) * 4);
+  }
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
     line-height: var(--leading-relaxed);
@@ -1679,6 +1696,10 @@
   .font-medium {
     --tw-font-weight: var(--font-weight-medium);
     font-weight: var(--font-weight-medium);
+  }
+  .font-normal {
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
   }
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
