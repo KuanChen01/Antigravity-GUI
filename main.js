@@ -45,6 +45,23 @@ function spawnAgy(args, options = {}) {
     }
   }
   
+  // Inject proxy if configured in settings.json
+  try {
+    const settingsPath = path.join(getCliDir(), 'settings.json');
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      if (settings.proxy && settings.proxy.trim()) {
+        const proxyUrl = settings.proxy.trim();
+        env['HTTP_PROXY'] = proxyUrl;
+        env['HTTPS_PROXY'] = proxyUrl;
+        env['http_proxy'] = proxyUrl;
+        env['https_proxy'] = proxyUrl;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to read proxy settings in spawnAgy:", e);
+  }
+  
   const spawnOptions = {
     ...options,
     env
@@ -569,6 +586,20 @@ ipcMain.handle('cli:login-agy', async () => {
       const pathKey = 'Path';
       env[pathKey] = `${agyDir};${env[pathKey] || ''}`;
     }
+    // Inject proxy if configured in settings.json
+    try {
+      const settingsPath = path.join(getCliDir(), 'settings.json');
+      if (fs.existsSync(settingsPath)) {
+        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+        if (settings.proxy && settings.proxy.trim()) {
+          const proxyUrl = settings.proxy.trim();
+          env['HTTP_PROXY'] = proxyUrl;
+          env['HTTPS_PROXY'] = proxyUrl;
+          env['http_proxy'] = proxyUrl;
+          env['https_proxy'] = proxyUrl;
+        }
+      }
+    } catch (e) {}
     spawn(cmd, args, { shell: true, env });
   } else if (process.platform === 'darwin') {
     const script = `tell application "Terminal" to do script "${agyBin}"`;

@@ -60,7 +60,9 @@ const TRANSLATIONS = {
     "TOOLS_MCP_ARGS": "Arguments (JSON array or space-separated)",
     "TOOLS_MCP_ARGS_PLACEHOLDER": 'e.g. ["dist/index.js"] or dist/index.js',
     "TOOLS_MCP_ADD_BTN": "Add MCP Server",
-    "LOGIN": "Login"
+    "LOGIN": "Login",
+    "SETTINGS_PROXY": "Proxy Server",
+    "SETTINGS_PROXY_PLACEHOLDER": "e.g. http://127.0.0.1:10808"
   },
   zh: {
     "NAV_CONVERSATIONS": "会话列表",
@@ -115,7 +117,9 @@ const TRANSLATIONS = {
     "TOOLS_MCP_ARGS": "执行参数 (JSON 数组或空格分隔)",
     "TOOLS_MCP_ARGS_PLACEHOLDER": '例如：["dist/index.js"] 或 dist/index.js',
     "TOOLS_MCP_ADD_BTN": "添加服务器",
-    "LOGIN": "登录"
+    "LOGIN": "登录",
+    "SETTINGS_PROXY": "代理服务器",
+    "SETTINGS_PROXY_PLACEHOLDER": "例如：http://127.0.0.1:10808"
   }
 };
 
@@ -1520,6 +1524,7 @@ async function initSettingsView() {
   const selPermissions = document.getElementById('setting-permissions');
   const selArtifacts = document.getElementById('setting-artifacts');
   const selLanguage = document.getElementById('setting-language');
+  const inpProxy = document.getElementById('setting-proxy');
   const saveMsg = document.getElementById('save-status-msg');
   
   const binPath = document.getElementById('diag-bin-path');
@@ -1545,6 +1550,9 @@ async function initSettingsView() {
       if (selLanguage) {
         selLanguage.value = currentSettings.language || 'en';
       }
+      if (inpProxy) {
+        inpProxy.value = currentSettings.proxy || '';
+      }
     } catch (e) {
       console.error("Load settings failed:", e);
     }
@@ -1559,6 +1567,9 @@ async function initSettingsView() {
     currentSettings.artifactReviewPolicy = selArtifacts.value;
     if (selLanguage) {
       currentSettings.language = selLanguage.value;
+    }
+    if (inpProxy) {
+      currentSettings.proxy = inpProxy.value;
     }
     
     try {
