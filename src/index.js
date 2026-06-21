@@ -4,6 +4,7 @@ let activeWorkspace = null;
 let currentConversationId = null;
 let isRunning = false;
 let currentLanguage = 'en';
+let pendingNewConversationContext = null;
 
 // Translations Dictionary
 const TRANSLATIONS = {
@@ -354,6 +355,8 @@ async function initConversationView() {
   const sidebarWsTitle = document.getElementById('sidebar-workspace-title');
   const stepProgress = document.getElementById('step-progress-panel');
   const stepLogs = document.getElementById('step-logs');
+  const stepStatusLabel = document.getElementById('step-status-label');
+  const stepElapsedLabel = document.getElementById('step-elapsed-label');
   const stopAgentBtn = document.getElementById('stop-agent-btn');
   const convSearch = document.getElementById('conv-search');
   const slashAutocomplete = document.getElementById('slash-autocomplete');
@@ -368,12 +371,94 @@ async function initConversationView() {
   let allConvs = [];
   let activeAttachedImage = null;
   let tempImagesToDelete = [];
+  const runTracking = {
+    pollTimer: null,
+    elapsedTimer: null,
+    startedAt: 0,
+    phase: 'idle',
+    stepCount: 0,
+    liveConversationId: null,
+    lastSignature: '',
+    pollInFlight: false
+  };
 
   // Enable/disable send button based on prompt content and workspace
   function updateInputState() {
     sendPromptBtn.disabled = isRunning || (!promptInput.value.trim() && !activeAttachedImage) || !activeWorkspace;
   }
+
+  function formatElapsed(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  }
+
+  function getRunPhaseText(phase, stepCount = 0) {
+    const isZh = currentLanguage === 'zh';
+    if (phase === 'starting') return isZh ? '正在启动智能体...' : 'Starting agent...';
+    if (phase === 'creating') return isZh ? '正在创建会话...' : 'Creating conversation...';
+    if (phase === 'opening') return isZh ? '正在打开实时会话...' : 'Opening live session...';
+    if (phase === 'queued') return isZh ? '请求已发送，等待响应...' : 'Prompt queued, waiting for response...';
+    if (phase === 'thinking') return isZh ? '正在分析请求...' : 'Analyzing request...';
+    if (phase === 'working') return isZh ? `正在执行 ${stepCount} 个后台步骤...` : `Executing ${stepCount} background steps...`;
+    if (phase === 'responding') return isZh ? '正在生成回复...' : 'Drafting response...';
+    if (phase === 'finalizing') return isZh ? '正在整理结果...' : 'Finalizing response...';
+    if (phase === 'done') return isZh ? '本轮已完成' : 'Run completed';
+    if (phase === 'stopped') return isZh ? '任务已停止' : 'Run stopped';
+    return isZh ? '智能体运行步骤...' : 'Agent running steps...';
+  }
+
+  function renderRunHeader() {
+    if (stepStatusLabel) {
+      stepStatusLabel.textContent = getRunPhaseText(runTracking.phase, runTracking.stepCount);
+    }
+    if (stepElapsedLabel) {
+      stepElapsedLabel.textContent = runTracking.startedAt ? formatElapsed(Date.now() - runTracking.startedAt) : '00:00';
+    }
+  }
+
+  function setRunPhase(phase, stepCount = runTracking.stepCount) {
+    runTracking.phase = phase;
+    runTracking.stepCount = stepCount;
+    renderRunHeader();
+  }
+
+  function clearRunTrackingTimers() {
+    if (runTracking.pollTimer) {
+      clearInterval(runTracking.pollTimer);
+      runTracking.pollTimer = null;
+    }
+    if (runTracking.elapsedTimer) {
+      clearInterval(runTracking.elapsedTimer);
+      runTracking.elapsedTimer = null;
+    }
+  }
+
+  function startLiveRunTracking() {
+    clearRunTrackingTimers();
+    runTracking.startedAt = Date.now();
+    runTracking.phase = 'starting';
+    runTracking.stepCount = 0;
+    runTracking.liveConversationId = currentConversationId || null;
+    runTracking.lastSignature = '';
+    runTracking.pollInFlight = false;
+    renderRunHeader();
+    runTracking.elapsedTimer = setInterval(renderRunHeader, 1000);
+    pollRunningConversation();
+    runTracking.pollTimer = setInterval(pollRunningConversation, 1500);
+  }
+
+  function stopLiveRunTracking(finalPhase = 'done') {
+    setRunPhase(finalPhase, runTracking.stepCount);
+    clearRunTrackingTimers();
+    runTracking.pollInFlight = false;
+    runTracking.liveConversationId = null;
+    runTracking.lastSignature = '';
+    runTracking.startedAt = 0;
+  }
   
+  renderRunHeader();
   promptInput.addEventListener('input', updateInputState);
 
   // Helper to handle attached/dropped image file
@@ -590,8 +675,8 @@ async function initConversationView() {
     setTimeout(hideAutocomplete, 180);
   });
 
-  // Default active mode (used as fallback if no explicit slash command is typed)
-  let activeMode = 'planning';
+  // Mode buttons were removed; plain prompts should remain plain unless the user types an explicit slash command.
+  let activeMode = null;
 
   // Fetch list of conversations
   async function loadConversations() {
@@ -645,6 +730,181 @@ async function initConversationView() {
     } catch (e) {
       convList.innerHTML = `<div class="p-4 text-error">Load failed: ${e.message}</div>`;
     }
+  }
+
+  function findPendingConversationCandidate(pending) {
+    if (!pending) {
+      return null;
+    }
+
+    const candidate = allConvs.find(c => {
+      const belongsToWorkspace = pending.workspace
+        ? (Array.isArray(c.workspaces)
+            ? c.workspaces.some(ws => isSamePath(ws, pending.workspace))
+            : isSamePath(c.workspace, pending.workspace))
+        : true;
+
+      return belongsToWorkspace && c.lastModified >= (pending.startedAt - 1000);
+    });
+
+    if (!candidate) {
+      return null;
+    }
+
+    const matchedWorkspace = pending.workspace && Array.isArray(candidate.workspaces)
+      ? candidate.workspaces.find(ws => isSamePath(ws, pending.workspace))
+      : candidate.workspace;
+
+    return { candidate, matchedWorkspace };
+  }
+
+  function getConversationSignature(steps) {
+    if (!steps || steps.length === 0) {
+      return 'empty';
+    }
+
+    const lastStep = steps[steps.length - 1];
+    const payload = lastStep.message?.text || lastStep.toolResponse?.content || lastStep.toolCall?.parameters || lastStep.error || '';
+    return `${steps.length}:${lastStep.index}:${lastStep.status}:${payload.length}`;
+  }
+
+  function summarizeConversationProgress(steps) {
+    let executionCount = 0;
+    let hasUserPrompt = false;
+    let hasAgentResponse = false;
+    let hasThoughtsOnly = false;
+
+    steps.forEach(step => {
+      if (step.message?.role === 'user') {
+        hasUserPrompt = true;
+      } else if (step.message?.role === 'agent' && !step.message?.isThoughtsOnly) {
+        hasAgentResponse = true;
+      } else if (step.message?.isThoughtsOnly) {
+        hasThoughtsOnly = true;
+        executionCount += 1;
+      } else if (step.toolCall || step.toolResponse || step.error) {
+        executionCount += 1;
+      }
+    });
+
+    let phase = 'starting';
+    if (hasAgentResponse) {
+      phase = executionCount > 0 ? 'finalizing' : 'responding';
+    } else if (executionCount > 0) {
+      phase = 'working';
+    } else if (hasThoughtsOnly) {
+      phase = 'thinking';
+    } else if (hasUserPrompt) {
+      phase = 'queued';
+    }
+
+    return { phase, executionCount };
+  }
+
+  function maybeUpdateRunPhaseFromLog(text) {
+    const normalized = text.toLowerCase();
+    if (normalized.includes('created conversation')) {
+      setRunPhase('opening', runTracking.stepCount);
+    } else if (normalized.includes('sending user message')) {
+      setRunPhase('queued', runTracking.stepCount);
+    } else if (normalized.includes('streamgeneratecontent')) {
+      setRunPhase('responding', runTracking.stepCount);
+    } else if (normalized.includes('authenticated')) {
+      setRunPhase('starting', runTracking.stepCount);
+    }
+  }
+
+  async function pollRunningConversation() {
+    if (!isRunning || runTracking.pollInFlight) {
+      return;
+    }
+
+    runTracking.pollInFlight = true;
+    try {
+      await loadConversations();
+
+      if (pendingNewConversationContext && !currentConversationId) {
+        const match = findPendingConversationCandidate(pendingNewConversationContext);
+        if (match) {
+          currentConversationId = match.candidate.id;
+          runTracking.liveConversationId = match.candidate.id;
+          if (match.matchedWorkspace && match.matchedWorkspace !== 'Unknown Workspace') {
+            activeWorkspace = match.matchedWorkspace;
+          }
+          setRunPhase('opening', runTracking.stepCount);
+        } else {
+          setRunPhase('creating', runTracking.stepCount);
+        }
+      }
+
+      const liveConversationId = currentConversationId || runTracking.liveConversationId;
+      if (!liveConversationId) {
+        return;
+      }
+
+      runTracking.liveConversationId = liveConversationId;
+      const details = await window.api.getConversationDetails(liveConversationId);
+      const signature = getConversationSignature(details.steps);
+      const progress = summarizeConversationProgress(details.steps);
+      setRunPhase(progress.phase, progress.executionCount);
+
+      if (signature !== runTracking.lastSignature) {
+        runTracking.lastSignature = signature;
+        renderMessages(details.steps);
+      }
+    } catch (err) {
+      console.error('Live conversation poll failed:', err);
+    } finally {
+      runTracking.pollInFlight = false;
+    }
+  }
+
+  async function restorePendingNewConversation() {
+    if (!pendingNewConversationContext) {
+      return false;
+    }
+
+    const pending = pendingNewConversationContext;
+    pendingNewConversationContext = null;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await loadConversations();
+
+      const match = findPendingConversationCandidate(pending);
+      if (match) {
+        currentConversationId = match.candidate.id;
+
+        if (match.matchedWorkspace) {
+          activeWorkspace = match.matchedWorkspace;
+        }
+
+        await loadConversations();
+        await loadConversationDetails(match.candidate.id);
+        return true;
+      }
+
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 350));
+      }
+    }
+
+    return false;
+  }
+
+  function renderAssistantPlaceholder() {
+    return `
+      <div class="flex justify-start mb-4">
+        <div class="max-w-[85%] bg-surface-container-high/40 border border-outline-variant rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+          <div class="flex items-center gap-2 mb-2 text-outline font-bold text-[10px] shrink-0">
+            <span class="material-symbols-outlined text-[12px] text-primary animate-pulse">smart_toy</span>
+            <span>${currentLanguage === 'zh' ? 'Antigravity 正在准备回复' : 'Antigravity is preparing a reply'}</span>
+          </div>
+          <div class="text-[13px] text-on-surface-variant leading-relaxed">
+            ${currentLanguage === 'zh' ? '已提交请求。界面将尽快同步实时步骤与回复内容。' : 'Your request has been submitted. Live steps and response content will appear here as soon as they are available.'}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderConversationsList(list) {
@@ -1003,6 +1263,9 @@ async function initConversationView() {
     const prompt = promptInput.value.trim();
     if ((!prompt && !activeAttachedImage) || isRunning || !activeWorkspace) return;
     
+    const startsNewConversation = !currentConversationId;
+    const promptStartedAt = Date.now();
+
     isRunning = true;
     promptInput.value = '';
     
@@ -1028,6 +1291,7 @@ async function initConversationView() {
     
     stepProgress.classList.remove('hidden');
     stepLogs.innerHTML = '';
+    startLiveRunTracking();
     
     // Add user message mock in list
     chatMessages.innerHTML += `
@@ -1039,12 +1303,18 @@ async function initConversationView() {
         <p class="text-body-md text-on-surface select-text">${prompt.replace(/\n/g, '<br/>')}</p>
         ${attachedImgPath ? `<p class="text-[11px] text-primary italic font-bold">Image attached: ${pathBasename(attachedImgPath)}</p>` : ''}
       </div>
+      ${renderAssistantPlaceholder()}
     `;
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
     try {
+      pendingNewConversationContext = startsNewConversation
+        ? { workspace: activeWorkspace, startedAt: promptStartedAt }
+        : null;
       await window.api.runPrompt(finalPrompt, currentConversationId, activeWorkspace, activeMode);
     } catch (e) {
+      pendingNewConversationContext = null;
+      stopLiveRunTracking('stopped');
       stepLogs.innerHTML = `<div class="text-error">Submission failed: ${e.message}</div>`;
       isRunning = false;
       updateInputState();
@@ -1088,12 +1358,14 @@ async function initConversationView() {
   // Stop running prompt
   stopAgentBtn.addEventListener('click', async () => {
     await window.api.stopPrompt();
+    setRunPhase('stopped', runTracking.stepCount);
     stepLogs.innerHTML += `<div class="text-error mt-2">Process manually terminated.</div>`;
   });
 
   // Listening for outputs
   const removeAgyOutputListener = window.api.onAgyOutput((data) => {
     const text = data.text;
+    maybeUpdateRunPhaseFromLog(text);
     const logLine = document.createElement('div');
     logLine.className = data.stream === 'stderr' ? 'text-error' : 'text-on-surface-variant';
     logLine.textContent = text;
@@ -1102,12 +1374,17 @@ async function initConversationView() {
   });
 
   const removeAgyExitListener = window.api.onAgyExit(async (code) => {
+    stopLiveRunTracking(code === 0 ? 'done' : 'stopped');
     isRunning = false;
     updateInputState();
     stepProgress.classList.add('hidden');
-    loadConversations(); // refresh list
-    if (currentConversationId) {
-      loadConversationDetails(currentConversationId); // reload chat
+
+    const restoredPendingConversation = await restorePendingNewConversation();
+    if (!restoredPendingConversation) {
+      await loadConversations();
+      if (currentConversationId) {
+        await loadConversationDetails(currentConversationId);
+      }
     }
     
     // Cleanup temporary image files inside the workspace
@@ -1144,6 +1421,7 @@ async function initConversationView() {
   navigateTo = async (vName) => {
     removeAgyOutputListener();
     removeAgyExitListener();
+    clearRunTrackingTimers();
     
     // Clean up any remaining temp files in the workspace
     if (tempImagesToDelete.length > 0) {

@@ -433,6 +433,9 @@
   .mb-auto {
     margin-bottom: auto;
   }
+  .ml-1 {
+    margin-left: var(--spacing);
+  }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
   }
@@ -1306,6 +1309,12 @@
   }
   .bg-surface-container-high {
     background-color: var(--color-surface-container-high);
+  }
+  .bg-surface-container-high\/40 {
+    background-color: color-mix(in srgb, #282a32 40%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-surface-container-high) 40%, transparent);
+    }
   }
   .bg-surface-container-high\/50 {
     background-color: color-mix(in srgb, #282a32 50%, transparent);

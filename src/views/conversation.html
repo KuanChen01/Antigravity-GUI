@@ -48,7 +48,8 @@
       <div class="flex items-center justify-between mb-2 shrink-0">
         <div class="flex items-center gap-2 text-primary font-label-sm text-label-sm">
           <span class="material-symbols-outlined animate-spin text-[16px]">rotate_right</span>
-          <span>Agent Running Steps...</span>
+          <span id="step-status-label">Agent Running Steps...</span>
+          <span id="step-elapsed-label" class="ml-1 rounded-full border border-outline-variant/60 bg-surface-container px-2 py-0.5 font-code-sm text-code-sm text-outline">00:00</span>
         </div>
         <button id="stop-agent-btn" class="text-error hover:underline font-label-sm text-label-sm">Cancel Task</button>
       </div>

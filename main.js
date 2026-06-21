@@ -11,6 +11,19 @@ let runningConversationId = null;
 const pendingRequests = new Map();
 let requestIdCounter = 0;
 
+function terminateActiveAgyProcess() {
+  if (!activeAgyProcess) {
+    return;
+  }
+
+  try {
+    activeAgyProcess.kill();
+  } catch (e) {}
+
+  activeAgyProcess = null;
+  runningConversationId = null;
+}
+
 // Resolve paths dynamically
 function getCliDir() {
   const homeDir = os.homedir();
@@ -26,6 +39,29 @@ function getAgyExecutablePath() {
   }
   // Fallback to searching the path
   return 'agy.exe';
+}
+
+function getCliSettingsPath() {
+  return path.join(getCliDir(), 'settings.json');
+}
+
+function readCliSettings() {
+  const settingsPath = getCliSettingsPath();
+  try {
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Failed to read settings.json:', e);
+  }
+  return {};
+}
+
+function shouldAutoClosePromptStdin(settings) {
+  const toolPermission = settings.toolPermission || 'always-proceed';
+  const artifactReviewPolicy = settings.artifactReviewPolicy || 'always-proceed';
+
+  return toolPermission === 'always-proceed' && artifactReviewPolicy === 'always-proceed';
 }
 
 function spawnAgy(args, options = {}) {
@@ -46,20 +82,13 @@ function spawnAgy(args, options = {}) {
   }
   
   // Inject proxy if configured in settings.json
-  try {
-    const settingsPath = path.join(getCliDir(), 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-      if (settings.proxy && settings.proxy.trim()) {
-        const proxyUrl = settings.proxy.trim();
-        env['HTTP_PROXY'] = proxyUrl;
-        env['HTTPS_PROXY'] = proxyUrl;
-        env['http_proxy'] = proxyUrl;
-        env['https_proxy'] = proxyUrl;
-      }
-    }
-  } catch (e) {
-    console.error("Failed to read proxy settings in spawnAgy:", e);
+  const settings = readCliSettings();
+  if (settings.proxy && settings.proxy.trim()) {
+    const proxyUrl = settings.proxy.trim();
+    env['HTTP_PROXY'] = proxyUrl;
+    env['HTTPS_PROXY'] = proxyUrl;
+    env['http_proxy'] = proxyUrl;
+    env['https_proxy'] = proxyUrl;
   }
   
   const spawnOptions = {
@@ -69,6 +98,7 @@ function spawnAgy(args, options = {}) {
   
   return spawn(agyBin, args, spawnOptions);
 }
+
 
 // Spawn the SQLite Database Utility Process
 function initDbWorker() {
@@ -180,6 +210,10 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('before-quit', () => {
+  terminateActiveAgyProcess();
+});
+
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
 });
@@ -197,30 +231,18 @@ ipcMain.handle('db:get-conversation-details', async (event, id) => {
 
 ipcMain.handle('db:delete-conversation', async (event, id) => {
   if (runningConversationId === id && activeAgyProcess) {
-    try {
-      activeAgyProcess.kill();
-      activeAgyProcess = null;
-      runningConversationId = null;
-    } catch (e) {}
+    terminateActiveAgyProcess();
   }
   return await queryWorker('delete_conversation', { id });
 });
 
 // Configurations: Settings & Workspaces
 ipcMain.handle('config:get-settings', async () => {
-  const settingsPath = path.join(getCliDir(), 'settings.json');
-  try {
-    if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-    }
-  } catch (e) {
-    console.error("Failed to read settings.json:", e);
-  }
-  return {};
+  return readCliSettings();
 });
 
 ipcMain.handle('config:save-settings', async (event, newSettings) => {
-  const settingsPath = path.join(getCliDir(), 'settings.json');
+  const settingsPath = getCliSettingsPath();
   try {
     fs.writeFileSync(settingsPath, JSON.stringify(newSettings, null, 2), 'utf-8');
     return { success: true };
@@ -470,13 +492,13 @@ ipcMain.handle('cli:quit-and-install', async () => {
 // Interactive / Print Prompt Executions
 ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspacePath, mode) => {
   if (activeAgyProcess) {
-    try {
-      activeAgyProcess.kill();
-    } catch (e) {}
+    terminateActiveAgyProcess();
   }
   
+  const settings = readCliSettings();
+  const trimmedPrompt = prompt.trim();
   let adjustedPrompt = prompt;
-  if (!prompt.trim().startsWith('/')) {
+  if (!trimmedPrompt.startsWith('/')) {
     if (mode === 'fast') {
       adjustedPrompt = `/fast ${prompt}`;
     } else if (mode === 'planning') {
@@ -497,18 +519,12 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
 
   // Load model from settings if running in planning mode and not overridden by a custom slash command
   let selectedModel = '';
-  const isPlanningMode = (mode === 'planning' && !prompt.trim().startsWith('/')) || prompt.trim().startsWith('/planning');
-  if (isPlanningMode) {
-    const settingsPath = path.join(getCliDir(), 'settings.json');
-    try {
-      if (fs.existsSync(settingsPath)) {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-        if (settings.model) {
-          selectedModel = settings.model;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to read settings in prompt run:", e);
+  const hasExplicitSlashCommand = trimmedPrompt.startsWith('/');
+  const isPlanningMode = (mode === 'planning' && !hasExplicitSlashCommand) || trimmedPrompt.startsWith('/planning');
+  const shouldApplyDefaultModel = !hasExplicitSlashCommand || isPlanningMode;
+  if (shouldApplyDefaultModel) {
+    if (settings.model) {
+      selectedModel = settings.model;
     }
   }
 
@@ -526,6 +542,11 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
 
   runningConversationId = conversationId || null;
   activeAgyProcess = spawnAgy(args, options);
+
+  // agy --print can remain open indefinitely in non-interactive pipe mode unless stdin is finalized.
+  if (shouldAutoClosePromptStdin(settings) && activeAgyProcess.stdin && activeAgyProcess.stdin.writable) {
+    activeAgyProcess.stdin.end();
+  }
   
   activeAgyProcess.on('error', (err) => {
     console.error("Failed to start agy process:", err);
@@ -567,8 +588,7 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
 
 ipcMain.handle('cli:stop-prompt', async () => {
   if (activeAgyProcess) {
-    activeAgyProcess.kill();
-    activeAgyProcess = null;
+    terminateActiveAgyProcess();
     return { success: true };
   }
   return { success: false };
@@ -587,19 +607,14 @@ ipcMain.handle('cli:login-agy', async () => {
       env[pathKey] = `${agyDir};${env[pathKey] || ''}`;
     }
     // Inject proxy if configured in settings.json
-    try {
-      const settingsPath = path.join(getCliDir(), 'settings.json');
-      if (fs.existsSync(settingsPath)) {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-        if (settings.proxy && settings.proxy.trim()) {
-          const proxyUrl = settings.proxy.trim();
-          env['HTTP_PROXY'] = proxyUrl;
-          env['HTTPS_PROXY'] = proxyUrl;
-          env['http_proxy'] = proxyUrl;
-          env['https_proxy'] = proxyUrl;
-        }
-      }
-    } catch (e) {}
+    const settings = readCliSettings();
+    if (settings.proxy && settings.proxy.trim()) {
+      const proxyUrl = settings.proxy.trim();
+      env['HTTP_PROXY'] = proxyUrl;
+      env['HTTPS_PROXY'] = proxyUrl;
+      env['http_proxy'] = proxyUrl;
+      env['https_proxy'] = proxyUrl;
+    }
     spawn(cmd, args, { shell: true, env });
   } else if (process.platform === 'darwin') {
     const script = `tell application "Terminal" to do script "${agyBin}"`;
@@ -689,4 +704,3 @@ ipcMain.on('cli:permission-response', (event, approved) => {
     activeAgyProcess.stdin.write(response);
   }
 });
-
