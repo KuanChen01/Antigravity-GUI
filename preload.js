@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('api', {
   
   // CLI Executions
   runPrompt: (prompt, conversationId, workspacePath, mode) => ipcRenderer.invoke('cli:run-prompt', prompt, conversationId, workspacePath, mode),
+  checkUnreadNotifications: (conversationId) => ipcRenderer.invoke('cli:check-unread-notifications', conversationId),
+  markNotificationsRead: (conversationId) => ipcRenderer.invoke('cli:mark-notifications-read', conversationId),
+  getTasksList: (conversationId) => ipcRenderer.invoke('cli:get-tasks-list', conversationId),
   stopPrompt: () => ipcRenderer.invoke('cli:stop-prompt'),
   getChangelog: () => ipcRenderer.invoke('cli:get-changelog'),
   checkForUpdates: () => ipcRenderer.invoke('cli:check-updates'),

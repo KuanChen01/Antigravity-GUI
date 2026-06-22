@@ -6,6 +6,8 @@ let isRunning = false;
 let currentLanguage = 'en';
 let pendingNewConversationContext = null;
 let openDetailsState = {};
+let lastProcessedStepIndex = -1;
+let backgroundPollInterval = null;
 
 // Dialog wrappers to prevent focus loss in Electron
 async function appConfirm(message, title = '') {
@@ -373,6 +375,7 @@ async function navigateTo(viewName) {
     // Initialize view controller
     if (viewName === 'conversation') initConversationView();
     if (viewName === 'workspace_home') initWorkspaceView();
+    if (viewName === 'subagents') initSubagentsView();
     if (viewName === 'tools') initToolsView();
     if (viewName === 'settings') initSettingsView();
   } catch (err) {
@@ -388,8 +391,158 @@ const SLASH_COMMANDS = [
   { name: '/grill-me', descEn: 'Grill-me Mode: start interview for design decisions', descZh: '对齐询问：与智能体进行交互式问答以拷问设计决策' },
   { name: '/schedule', descEn: 'Schedule Task: run command on timer/cron jobs', descZh: '周期调度：创建定时器或配置 Cron 任务自动定期执行' },
   { name: '/teamwork-preview', descEn: 'Teamwork Mode: simulate multiple agent teamwork', descZh: '团队预览：体验多个专家级智能体分工协同开发大功能' },
-  { name: '/learn', descEn: 'Learn Experience: persist conversation lessons & setup', descZh: '总结学习：持久化学习记录本次会话的命令、规则与配置' }
+  { name: '/learn', descEn: 'Learn Experience: persist conversation lessons & setup', descZh: '总结学习：持久化学习记录本次会话的命令、规则与配置' },
+  { name: '/tasks', descEn: 'List Tasks: view active and historical subtasks', descZh: '任务列表：查看当前会话的活跃和历史后台子任务' },
+  { name: '/task', descEn: 'List Tasks: view active and historical subtasks', descZh: '任务列表：查看当前会话的活跃和历史后台子任务' }
 ];
+
+// Parser to extract all background tasks/subagents from conversation steps
+function parseTasksFromSteps(steps) {
+  const tasksMap = {};
+
+  for (const step of steps) {
+    if (step.rawStrings && step.rawStrings.length > 0) {
+      for (const str of step.rawStrings) {
+        const match = str.match(/([a-zA-Z0-9\-\/]*task-\d+)/);
+        if (match) {
+          let fullId = match[1];
+          if (fullId.startsWith('-')) fullId = fullId.substring(1);
+          const shortId = fullId.includes('/') ? fullId.split('/').pop() : fullId;
+
+          let commandLine = '';
+          let toolAction = '';
+          const jsonStr = step.rawStrings.find(s => s.startsWith('{') && s.includes('CommandLine'));
+          if (jsonStr) {
+            try {
+              const details = JSON.parse(jsonStr);
+              commandLine = details.CommandLine || '';
+              toolAction = details.toolAction || '';
+            } catch(e) {}
+          }
+
+          const isNotification = step.type === 101 && step.rawStrings.includes('task_notification');
+          let status = 'running';
+          let logFile = '';
+          if (isNotification) {
+            const lastStr = step.rawStrings.join('\n');
+            if (lastStr.includes('finished with result:')) {
+              status = 'completed';
+            } else if (lastStr.includes('was canceled') || lastStr.includes('canceled')) {
+              status = 'canceled';
+            } else if (lastStr.includes('failed')) {
+              status = 'failed';
+            }
+
+            const logMatch = step.rawStrings.find(s => s.includes('.log'));
+            if (logMatch) {
+              const pathPart = logMatch.match(/(file:\/\/\/[^\s\']+|[a-zA-Z]:\\[^\s\']+)/);
+              if (pathPart) {
+                logFile = pathPart[0];
+              }
+            }
+          }
+
+          if (!tasksMap[shortId]) {
+            tasksMap[shortId] = {
+              id: fullId,
+              shortId: shortId,
+              command: commandLine,
+              action: toolAction || 'Background Operation',
+              status: status,
+              logFile: logFile,
+              spawnedStep: step.index,
+              completedStep: isNotification ? step.index : null
+            };
+          } else {
+            const existing = tasksMap[shortId];
+            if (commandLine) existing.command = commandLine;
+            if (toolAction && toolAction !== 'Background Operation') existing.action = toolAction;
+            if (status !== 'running') {
+              existing.status = status;
+              existing.completedStep = step.index;
+            }
+            if (logFile) existing.logFile = logFile;
+            existing.spawnedStep = Math.min(existing.spawnedStep, step.index);
+          }
+        }
+      }
+    }
+  }
+
+  const list = Object.values(tasksMap);
+  for (const t of list) {
+    if (!t.command) {
+      t.command = 'System Command';
+    }
+    if (t.action === 'Background Operation' && t.command !== 'System Command') {
+      t.action = `Run ${t.command}`;
+    }
+  }
+
+  return list.sort((a, b) => a.spawnedStep - b.spawnedStep);
+}
+
+// Renders the parsed tasks summary inside the chat window
+function renderTasksListBubble(tasks) {
+  let listHtml = '';
+  if (tasks.length === 0) {
+    listHtml = `
+      <div class="text-on-surface-variant text-body-md py-2 italic text-center">
+        ${currentLanguage === 'zh' ? '当前会话没有运行任何后台任务' : 'No background tasks have been executed in this session.'}
+      </div>
+    `;
+  } else {
+    listHtml = tasks.map(t => {
+      let statusBadge = '';
+      if (t.status === 'completed') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">${currentLanguage === 'zh' ? '已完成' : 'Completed'}</span>`;
+      } else if (t.status === 'canceled') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-surface-variant text-on-surface-variant border border-outline-variant">${currentLanguage === 'zh' ? '已取消' : 'Canceled'}</span>`;
+      } else if (t.status === 'failed') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-error/10 text-error border border-error/20">${currentLanguage === 'zh' ? '已失败' : 'Failed'}</span>`;
+      } else {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">${currentLanguage === 'zh' ? '运行中' : 'Running'}</span>`;
+      }
+
+      const logButton = t.logFile
+        ? `<a href="${t.logFile}" target="_blank" class="text-xs text-primary hover:underline flex items-center gap-1">
+             <span class="material-symbols-outlined text-[14px]">description</span>
+             ${currentLanguage === 'zh' ? '查看日志' : 'View Log'}
+           </a>`
+        : '';
+
+      return `
+        <div class="py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-outline-variant/30 last:border-b-0">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-on-surface text-body-md">${t.shortId}</span>
+              ${statusBadge}
+            </div>
+            <p class="font-code-sm text-code-sm text-on-surface-variant max-w-xl truncate" title="${t.command || ''}">${t.action || t.command || ''}</p>
+          </div>
+          <div class="shrink-0 flex items-center gap-3">
+            ${logButton}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  return `
+    <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-low border-l-4 border-primary space-y-3">
+      <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
+        <div class="flex items-center gap-2 text-primary font-bold">
+          <span class="material-symbols-outlined text-[18px]">task</span>
+          <span>${currentLanguage === 'zh' ? '任务状态列表' : 'Task Status List'}</span>
+        </div>
+        <span class="text-outline-variant">${new Date().toLocaleTimeString()}</span>
+      </div>
+      <div class="divide-y divide-outline-variant/30">
+        ${listHtml}
+      </div>
+    </div>
+  `;
+}
 
 async function initConversationView() {
   const convList = document.getElementById('conv-list');
@@ -503,6 +656,13 @@ async function initConversationView() {
     runTracking.liveConversationId = null;
     runTracking.lastSignature = '';
     runTracking.startedAt = 0;
+
+    if (currentConversationId) {
+      window.api.getConversationDetails(currentConversationId).then(details => {
+        const maxStepIdx = details.steps.reduce((max, s) => Math.max(max, s.index), -1);
+        lastProcessedStepIndex = maxStepIdx;
+      }).catch(console.error);
+    }
   }
   
   renderRunHeader();
@@ -1098,8 +1258,38 @@ async function initConversationView() {
     chatMessages.innerHTML = '<div class="text-center py-12 text-on-surface-variant animate-pulse">Loading steps...</div>';
     try {
       const details = await window.api.getConversationDetails(id);
+      const maxStepIdx = details.steps.reduce((max, s) => Math.max(max, s.index), -1);
+      lastProcessedStepIndex = maxStepIdx;
       renderMessages(details.steps);
       promptInput.focus();
+
+      // Auto-resume if loaded conversation ends in an unprocessed task notification
+      if (details.steps.length > 0) {
+        const lastStep = details.steps[details.steps.length - 1];
+        if (lastStep.type === 101) {
+          const hasTaskNotification = lastStep.rawStrings && lastStep.rawStrings.some(str => 
+            str.includes('task_notification') || str.includes('finished with result') || str.includes('was canceled') || str.includes('canceled')
+          );
+          if (hasTaskNotification) {
+            console.log("Loaded conversation ends in task notification. Auto-resuming...");
+            isRunning = true;
+            updateInputState();
+            stepProgress.classList.remove('hidden');
+            stepLogs.innerHTML = '';
+            startLiveRunTracking();
+            
+            chatMessages.innerHTML += renderAssistantPlaceholder();
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            window.api.runPrompt("", currentConversationId, activeWorkspace, activeMode).catch(err => {
+              console.error("Auto-resume failed:", err);
+              isRunning = false;
+              updateInputState();
+              stopLiveRunTracking('stopped');
+            });
+          }
+        }
+      }
     } catch (e) {
       chatMessages.innerHTML = `<div class="p-6 text-error">Failed to load conversation: ${e.message}</div>`;
     }
@@ -1189,14 +1379,23 @@ async function initConversationView() {
               </div>
             `;
           } else if (step.toolResponse) {
-            const resultLabel = currentLanguage === 'zh' ? '工具返回结果' : 'Tool Response';
+            const isTask = step.type === 101;
+            const resultLabel = isTask
+              ? (currentLanguage === 'zh' ? '后台任务通知' : 'Background Task Notification')
+              : (currentLanguage === 'zh' ? '工具返回结果' : 'Tool Response');
+            const iconName = isTask ? 'notifications' : 'check_circle';
+            const textColorClass = isTask
+              ? 'text-primary'
+              : 'text-emerald-600 dark:text-emerald-400';
+            const dotBgClass = isTask ? 'bg-primary' : 'bg-emerald-500';
+
             stepsHtml += `
               <div class="relative pl-6 pb-4 last:pb-0 border-l-2 border-outline-variant/60">
-                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-background"></div>
+                <div class="absolute -left-[6px] top-1.5 w-[10px] h-[10px] rounded-full ${dotBgClass} border-2 border-background"></div>
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between shrink-0">
-                    <span class="font-bold text-[12px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 select-all">
-                      <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                    <span class="font-bold text-[12px] ${textColorClass} flex items-center gap-1.5 select-all">
+                      <span class="material-symbols-outlined text-[14px]">${iconName}</span>
                       ${resultLabel}
                     </span>
                     <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
@@ -1321,6 +1520,61 @@ async function initConversationView() {
   async function submitPrompt() {
     const prompt = promptInput.value.trim();
     if ((!prompt && !activeAttachedImage) || isRunning || !activeWorkspace) return;
+
+    if (prompt === '/tasks' || prompt === '/task') {
+      promptInput.value = '';
+      updateInputState();
+      
+      // Render user prompt in chat
+      chatMessages.innerHTML += `
+        <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-low border-l-4 border-secondary space-y-2">
+          <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
+            <span class="font-bold text-on-background">User Instruction</span>
+            <span class="text-outline">${new Date().toLocaleTimeString()}</span>
+          </div>
+          <p class="text-body-md text-on-surface select-text">${prompt}</p>
+        </div>
+      `;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      if (!currentConversationId) {
+        chatMessages.innerHTML += `
+          <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-low border-l-4 border-primary space-y-2">
+            <div class="text-on-surface-variant text-body-md italic">
+              ${currentLanguage === 'zh' ? '请先选择或创建一个会话以查看任务。' : 'Please select or create a conversation first to view tasks.'}
+            </div>
+          </div>
+        `;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return;
+      }
+
+      try {
+        const res = await window.api.getTasksList(currentConversationId);
+        if (res && res.success) {
+          const formattedTasks = res.tasks.map(t => ({
+            id: t.fullId,
+            shortId: t.type === 'subagent' ? `subagent-${t.id}` : `task-${t.id}`,
+            command: t.description,
+            action: t.type === 'subagent' ? 'Subagent Instance' : (t.type === 'timer' ? 'Scheduled Timer' : 'Background Command'),
+            status: t.status.toLowerCase(),
+            logFile: t.logFile || ''
+          }));
+          chatMessages.innerHTML += renderTasksListBubble(formattedTasks);
+        } else {
+          throw new Error(res.error || 'Failed to query tasks');
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } catch (err) {
+        chatMessages.innerHTML += `
+          <div class="p-4 rounded-lg border border-error bg-error/5 border-l-4 space-y-2 text-error text-body-md">
+            Failed to query tasks: ${err.message}
+          </div>
+        `;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      return;
+    }
     
     const startsNewConversation = !currentConversationId;
     const promptStartedAt = Date.now();
@@ -1482,6 +1736,11 @@ async function initConversationView() {
     removeAgyExitListener();
     clearRunTrackingTimers();
     
+    if (backgroundPollInterval) {
+      clearInterval(backgroundPollInterval);
+      backgroundPollInterval = null;
+    }
+    
     // Clean up any remaining temp files in the workspace
     if (tempImagesToDelete.length > 0) {
       for (const filePath of tempImagesToDelete) {
@@ -1504,8 +1763,64 @@ async function initConversationView() {
     await navigateTo(vName);
   };
 
+  function startBackgroundDatabasePolling() {
+    if (backgroundPollInterval) clearInterval(backgroundPollInterval);
+    backgroundPollInterval = setInterval(async () => {
+      if (isRunning || currentView !== 'conversation' || !currentConversationId) {
+        return;
+      }
+      try {
+        const details = await window.api.getConversationDetails(currentConversationId);
+        const signature = getConversationSignature(details.steps);
+        if (signature !== runTracking.lastSignature) {
+          runTracking.lastSignature = signature;
+          renderMessages(details.steps);
+        }
+
+        // Check for unread task notifications/messages in messages folder
+        const unreadRes = await window.api.checkUnreadNotifications(currentConversationId);
+        let shouldAutoResume = false;
+        if (unreadRes && unreadRes.hasUnread) {
+          shouldAutoResume = true;
+          console.log("Detected unread messages in inbox: auto-resuming conversation...");
+        } else {
+          // Backup fallback check for database step type 101
+          const lastStep = details.steps[details.steps.length - 1];
+          if (lastStep && lastStep.type === 101) {
+            const hasTaskNotification = lastStep.rawStrings && lastStep.rawStrings.some(s => s.includes('task_notification') || s.includes('finished with result') || s.includes('was canceled') || s.includes('canceled'));
+            if (hasTaskNotification) {
+              shouldAutoResume = true;
+              console.log("Detected unprocessed task notification in database: auto-resuming conversation...");
+            }
+          }
+        }
+
+        if (shouldAutoResume) {
+          isRunning = true;
+          updateInputState();
+          stepProgress.classList.remove('hidden');
+          stepLogs.innerHTML = '';
+          startLiveRunTracking();
+          
+          chatMessages.innerHTML += renderAssistantPlaceholder();
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          
+          window.api.runPrompt("", currentConversationId, activeWorkspace, activeMode).catch(err => {
+            console.error("Auto-resume failed:", err);
+            isRunning = false;
+            updateInputState();
+            stopLiveRunTracking('stopped');
+          });
+        }
+      } catch (err) {
+        console.error("Background DB/notification poll error:", err);
+      }
+    }, 3000);
+  }
+
   // Initial load
   loadConversations();
+  startBackgroundDatabasePolling();
 }
 
 // --- WORKSPACE VIEW CONTROLLER ---
@@ -1605,6 +1920,90 @@ async function initWorkspaceView() {
   });
   
   loadWorkspaces();
+}
+
+// --- SUBAGENTS VIEW CONTROLLER ---
+async function initSubagentsView() {
+  const subagentsList = document.getElementById('subagents-list');
+  if (!subagentsList) return;
+
+  if (!currentConversationId) {
+    subagentsList.innerHTML = `
+      <tr class="border-b border-outline-variant/50">
+        <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
+          ${currentLanguage === 'zh' ? '请先在会话控制台中选择一个会话以查看其关联的后台任务。' : 'Please select a conversation in the console first to view its background tasks.'}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  try {
+    const res = await window.api.getTasksList(currentConversationId);
+    if (!res || !res.success) {
+      throw new Error(res ? res.error : 'Failed to query tasks');
+    }
+
+    const tasks = res.tasks.map(t => ({
+      id: t.fullId,
+      shortId: t.type === 'subagent' ? `subagent-${t.id}` : `task-${t.id}`,
+      command: t.description,
+      action: t.type === 'subagent' ? 'Subagent Instance' : (t.type === 'timer' ? 'Scheduled Timer' : 'Background Command'),
+      status: t.status.toLowerCase(),
+      logFile: t.logFile || ''
+    }));
+
+    if (tasks.length === 0) {
+      subagentsList.innerHTML = `
+        <tr class="border-b border-outline-variant/50">
+          <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
+            ${currentLanguage === 'zh' ? '当前会话没有发现任何子任务。' : 'No background tasks found in the selected conversation.'}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    subagentsList.innerHTML = tasks.map(t => {
+      let statusBadge = '';
+      if (t.status === 'completed') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">${currentLanguage === 'zh' ? '已完成' : 'Completed'}</span>`;
+      } else if (t.status === 'canceled') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-surface-variant text-on-surface-variant border border-outline-variant">${currentLanguage === 'zh' ? '已取消' : 'Canceled'}</span>`;
+      } else if (t.status === 'failed') {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-error/10 text-error border border-error/20">${currentLanguage === 'zh' ? '已失败' : 'Failed'}</span>`;
+      } else {
+        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">${currentLanguage === 'zh' ? '运行中' : 'Running'}</span>`;
+      }
+
+      const logLink = t.logFile
+        ? `<a href="${t.logFile}" target="_blank" class="text-primary hover:underline inline-flex items-center gap-1 ml-3">
+             <span class="material-symbols-outlined text-[16px]">description</span>
+             ${currentLanguage === 'zh' ? '日志' : 'Log'}
+           </a>`
+        : '';
+
+      return `
+        <tr class="border-b border-outline-variant/50 hover:bg-surface-variant/30 transition-colors">
+          <td class="py-3 px-4 font-bold text-on-surface font-code-md">${t.shortId}</td>
+          <td class="py-3 px-4 text-on-surface-variant">${t.action}</td>
+          <td class="py-3 px-4 text-on-surface-variant font-code-sm truncate max-w-xs" title="${t.command}">${t.command}</td>
+          <td class="py-3 px-4 flex items-center justify-between">
+            ${statusBadge}
+            ${logLink}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    subagentsList.innerHTML = `
+      <tr class="border-b border-outline-variant/50">
+        <td class="py-4 px-4 text-center col-span-4 text-label-sm text-error" colspan="4">
+          Error loading subagents: ${err.message}
+        </td>
+      </tr>
+    `;
+  }
 }
 
 // --- TOOLS VIEW CONTROLLER ---
@@ -2167,6 +2566,83 @@ function isSamePath(p1, p2) {
   const n1 = p1.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
   const n2 = p2.trim().replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase();
   return n1 === n2;
+}
+
+async function initSubagentsView() {
+  const listBody = document.getElementById('subagents-list');
+  if (!listBody) return;
+
+  if (!currentConversationId) {
+    listBody.innerHTML = `
+      <tr class="border-b border-outline-variant/50">
+        <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
+          \${currentLanguage === 'zh' ? '请先选择或创建一个会话以查看任务。' : 'Please select or create a conversation first to view tasks.'}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  listBody.innerHTML = `
+    <tr class="border-b border-outline-variant/50">
+      <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant animate-pulse" colspan="4">
+        \${currentLanguage === 'zh' ? '正在加载后台任务...' : 'Loading background tasks...'}
+      </td>
+    </tr>
+  `;
+
+  try {
+    const details = await window.api.getConversationDetails(currentConversationId);
+    const tasks = parseTasksFromSteps(details.steps);
+
+    if (tasks.length === 0) {
+      listBody.innerHTML = `
+        <tr class="border-b border-outline-variant/50">
+          <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
+            \${currentLanguage === 'zh' ? '当前会话没有关联的后台任务。' : 'No background tasks associated with the current conversation.'}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    listBody.innerHTML = tasks.map(t => {
+      let statusColor = 'text-outline';
+      let statusBg = 'bg-surface-variant/40';
+      if (t.status === 'completed') {
+        statusColor = 'text-emerald-500';
+        statusBg = 'bg-emerald-500/10 border border-emerald-500/20';
+      } else if (t.status === 'running') {
+        statusColor = 'text-sky-500 pulse-primary';
+        statusBg = 'bg-sky-500/10 border border-sky-500/20';
+      } else if (t.status === 'canceled' || t.status === 'failed') {
+        statusColor = 'text-rose-500';
+        statusBg = 'bg-rose-500/10 border border-rose-500/20';
+      }
+
+      const desc = t.action || t.command || 'Background Task';
+
+      return `
+        <tr class="border-b border-outline-variant/50 hover:bg-surface-variant/20 transition-colors">
+          <td class="py-4 px-4 font-bold text-primary font-code-sm">\${t.shortId}</td>
+          <td class="py-4 px-4 font-medium text-on-surface select-text">\${desc}</td>
+          <td class="py-4 px-4 font-code-sm truncate max-w-xs select-text" title="\${activeWorkspace || ''}">\${pathBasename(activeWorkspace || '')}</td>
+          <td class="py-4 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold \${statusColor} \${statusBg}">\${t.status.toUpperCase()}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+  } catch (e) {
+    listBody.innerHTML = `
+      <tr class="border-b border-outline-variant/50">
+        <td class="py-4 px-4 text-center col-span-4 text-error text-label-sm font-bold" colspan="4">
+          \${currentLanguage === 'zh' ? '加载失败：' : 'Load failed: '}\${e.message}
+        </td>
+      </tr>
+    `;
+  }
 }
 
 // Start App

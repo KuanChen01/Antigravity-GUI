@@ -622,6 +622,174 @@ ipcMain.handle('cli:stop-prompt', async () => {
   return { success: false };
 });
 
+ipcMain.handle('cli:mark-notifications-read', async (event, conversationId) => {
+  if (!conversationId) return { success: false };
+  const homeDir = os.homedir();
+  const messagesDir = path.join(homeDir, '.gemini', 'antigravity-cli', 'brain', conversationId, '.system_generated', 'messages');
+  if (!fs.existsSync(messagesDir)) {
+    return { success: true };
+  }
+  try {
+    const files = fs.readdirSync(messagesDir);
+    const jsonFiles = files.filter(f => f.endsWith('.json') && f !== 'read.json');
+    
+    const readPath = path.join(messagesDir, 'read.json');
+    let readMap = {};
+    if (fs.existsSync(readPath)) {
+      try {
+        readMap = JSON.parse(fs.readFileSync(readPath, 'utf-8'));
+      } catch (e) {}
+    }
+    
+    for (const file of jsonFiles) {
+      const msgId = file.replace('.json', '');
+      readMap[msgId] = true;
+    }
+    
+    fs.writeFileSync(readPath, JSON.stringify(readMap, null, 2), 'utf-8');
+    return { success: true };
+  } catch (err) {
+    console.error("Failed to mark notifications read:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('cli:check-unread-notifications', async (event, conversationId) => {
+  if (!conversationId) return { hasUnread: false };
+  const homeDir = os.homedir();
+  const messagesDir = path.join(homeDir, '.gemini', 'antigravity-cli', 'brain', conversationId, '.system_generated', 'messages');
+  if (!fs.existsSync(messagesDir)) {
+    return { hasUnread: false };
+  }
+  try {
+    const files = fs.readdirSync(messagesDir);
+    const jsonFiles = files.filter(f => f.endsWith('.json') && f !== 'read.json');
+    if (jsonFiles.length === 0) {
+      return { hasUnread: false };
+    }
+
+    const readPath = path.join(messagesDir, 'read.json');
+    let readMap = {};
+    if (fs.existsSync(readPath)) {
+      try {
+        readMap = JSON.parse(fs.readFileSync(readPath, 'utf-8'));
+      } catch (e) {
+        console.error("Failed to parse read.json", e);
+      }
+    }
+
+    let unreadCount = 0;
+    const unreadMessages = [];
+
+    for (const file of jsonFiles) {
+      const msgId = file.replace('.json', '');
+      if (!readMap[msgId]) {
+        try {
+          const content = JSON.parse(fs.readFileSync(path.join(messagesDir, file), 'utf-8'));
+          unreadCount++;
+          unreadMessages.push(content);
+        } catch (e) {
+          unreadCount++;
+        }
+      }
+    }
+
+    return {
+      hasUnread: unreadCount > 0,
+      unreadCount,
+      messages: unreadMessages
+    };
+  } catch (err) {
+    console.error("Failed to check unread notifications:", err);
+    return { hasUnread: false };
+  }
+});
+
+ipcMain.handle('cli:get-tasks-list', async (event, conversationId) => {
+  if (!conversationId) return { success: true, tasks: [] };
+  const homeDir = os.homedir();
+  const tasksDir = path.join(homeDir, '.gemini', 'antigravity-cli', 'brain', conversationId, '.system_generated', 'tasks');
+  const messagesDir = path.join(homeDir, '.gemini', 'antigravity-cli', 'brain', conversationId, '.system_generated', 'messages');
+  
+  if (!fs.existsSync(tasksDir)) {
+    return { success: true, tasks: [] };
+  }
+
+  try {
+    const files = fs.readdirSync(tasksDir).filter(f => f.endsWith('.log'));
+    const messages = [];
+    if (fs.existsSync(messagesDir)) {
+      const msgFiles = fs.readdirSync(messagesDir).filter(f => f.endsWith('.json'));
+      for (const f of msgFiles) {
+        try {
+          const content = JSON.parse(fs.readFileSync(path.join(messagesDir, f), 'utf-8'));
+          messages.push(content);
+        } catch (e) {}
+      }
+    }
+
+    const tasks = [];
+    for (const file of files) {
+      const taskIdNum = file.replace('task-', '').replace('.log', '');
+      const fullTaskId = `${conversationId}/task-${taskIdNum}`;
+      const logPath = path.join(tasksDir, file);
+      const stat = fs.statSync(logPath);
+      const content = fs.readFileSync(logPath, 'utf-8');
+
+      // Check if finished via messages
+      const finishMsg = messages.find(m => m.content && m.content.includes(fullTaskId) && (m.content.includes('finished') || m.content.includes('canceled') || m.content.includes('completed')));
+      
+      let status = 'RUNNING';
+      let result = '';
+      if (finishMsg) {
+        status = finishMsg.content.includes('canceled') ? 'CANCELED' : 'COMPLETED';
+        result = finishMsg.content;
+      } else if (content.includes('Timer fired') || content.includes('completed') || content.includes('finished')) {
+        status = 'COMPLETED';
+      }
+
+      // Parse what the task is doing
+      let description = 'Unknown Task';
+      let type = 'command';
+      if (content.includes('Spawning:')) {
+        const match = content.match(/Spawning:\s*(.*)/);
+        description = match ? match[1].trim() : 'Running Command';
+        type = 'command';
+      } else if (content.includes('timer') || content.includes('Timer')) {
+        const match = content.match(/Prompt:\s*(.*)/);
+        description = match ? `Timer: ${match[1].trim()}` : 'Scheduled Timer';
+        type = 'timer';
+      }
+
+      // Check if it is a subagent deployment
+      if (description.includes('agy.exe') && description.includes('--print') && (description.includes('/planning') || description.includes('/fast'))) {
+        type = 'subagent';
+        const promptMatch = description.match(/'--print',\s*'([^']*)'/);
+        description = promptMatch ? `Subagent: ${promptMatch[1]}` : 'Subagent Execution';
+      }
+
+      tasks.push({
+        id: taskIdNum,
+        fullId: fullTaskId,
+        type: type,
+        status: status,
+        description: description,
+        mtime: stat.mtime.toISOString(),
+        size: stat.size,
+        logFile: `file:///${logPath.replace(/\\/g, '/')}`
+      });
+    }
+
+    // Sort by mtime desc
+    tasks.sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+
+    return { success: true, tasks };
+  } catch (err) {
+    console.error("Failed to get tasks list:", err);
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('cli:login-agy', async () => {
   const agyBin = getAgyExecutablePath();
   const agyDir = path.dirname(agyBin);

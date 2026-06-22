@@ -92,6 +92,97 @@ function extractAllStrings(protoObj) {
   return strings;
 }
 
+function extractTasksFromSteps(steps) {
+  const tasksMap = new Map();
+
+  for (const step of steps) {
+    if (step.type === 101 && step.rawStrings) {
+      for (const str of step.rawStrings) {
+        const taskIdMatch = str.match(/(task-\d+)/);
+        if (taskIdMatch) {
+          const taskId = taskIdMatch[1];
+          let task = tasksMap.get(taskId) || {
+            id: taskId,
+            description: 'Unknown Task',
+            status: 'Running',
+            type: 'Command',
+            result: '',
+            updatedAt: ''
+          };
+
+          if (str.includes('Liveness timer') || str.includes('Timer:')) {
+            task.type = 'Timer';
+          } else if (str.includes('subagent') || str.includes('Subagent')) {
+            task.type = 'Subagent';
+          } else {
+            task.type = 'Command';
+          }
+
+          if (str.includes('finished with result:')) {
+            task.status = 'Completed';
+            const resultIdx = str.indexOf('finished with result:');
+            task.result = str.substring(resultIdx + 'finished with result:'.length).trim();
+          } else if (str.includes('was canceled with result:')) {
+            task.status = 'Cancelled';
+            const resultIdx = str.indexOf('was canceled with result:');
+            task.result = str.substring(resultIdx + 'was canceled with result:'.length).trim();
+          } else if (str.includes('Timer has expired')) {
+            task.status = 'Expired';
+            task.result = str;
+          }
+
+          const jsonMatch = step.rawStrings.find(s => s.startsWith('{') && s.includes('CommandLine'));
+          if (jsonMatch) {
+            try {
+              const cmdObj = JSON.parse(jsonMatch);
+              if (cmdObj.CommandLine) {
+                task.description = cmdObj.CommandLine;
+                task.type = 'Command';
+              } else if (cmdObj.Prompt) {
+                task.description = cmdObj.Prompt;
+                if (cmdObj.CronExpression) {
+                  task.type = 'Cron';
+                } else {
+                  task.type = 'Timer';
+                }
+              }
+            } catch(e) {}
+          } else {
+            if (task.description === 'Unknown Task') {
+              const lines = str.split('\n');
+              const contentLine = lines.find(l => l.includes('content='));
+              if (contentLine) {
+                const contentVal = contentLine.substring(contentLine.indexOf('content=') + 8);
+                task.description = contentVal.replace(/^['"]|['"]$/g, '');
+              } else {
+                task.description = lines[0] || 'Unknown Task';
+              }
+            }
+          }
+
+          tasksMap.set(taskId, task);
+        }
+      }
+    }
+  }
+
+  for (const step of steps) {
+    if (step.type === 101 && step.rawStrings) {
+      const serverRestartMsg = step.rawStrings.find(s => s.includes('stopped due to server restart'));
+      if (serverRestartMsg) {
+        for (const [id, task] of tasksMap.entries()) {
+          if (task.status === 'Running') {
+            task.status = 'Stopped';
+            task.result = 'Stopped due to server restart.';
+          }
+        }
+      }
+    }
+  }
+
+  return Array.from(tasksMap.values());
+}
+
 // Get the user's CLI directory
 function getCliDir() {
   const homeDir = os.homedir() || process.env.USERPROFILE || process.env.HOME;
@@ -573,6 +664,7 @@ function getConversationDetails(id) {
     }
   }
   
+  details.tasks = extractTasksFromSteps(details.steps);
   return details;
 }
 
