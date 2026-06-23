@@ -1,7 +1,7 @@
 <div class="p-8 space-y-6 h-full overflow-y-auto bg-background">
   <div class="border-b border-outline-variant pb-4">
-    <h2 class="font-headline-lg text-headline-lg font-bold text-on-background">Subagents Manager</h2>
-    <p class="text-on-surface-variant text-body-md mt-1">Monitor and manage autonomous subagents running concurrently on specific tasks.</p>
+    <h2 class="font-headline-lg text-headline-lg font-bold text-on-background" data-i18n="SUBAGENTS_HEADER">Subagents Manager</h2>
+    <p class="text-on-surface-variant text-body-md mt-1" data-i18n="SUBAGENTS_DESC">Monitor and manage autonomous subagents running concurrently on specific tasks.</p>
   </div>
 
   <div class="bg-surface-container rounded-lg border border-outline-variant p-6 space-y-4">
@@ -10,8 +10,8 @@
         <span class="material-symbols-outlined text-primary text-[22px]">smart_toy</span>
       </div>
       <div>
-        <h3 class="font-headline-md font-bold text-on-background" style="font-size: 16px;">Active Subagent Instances</h3>
-        <p class="text-on-surface-variant text-label-sm">Subagents inherit core credentials and tool configs, reporting back details asynchronously.</p>
+        <h3 class="font-headline-md font-bold text-on-background" style="font-size: 16px;" data-i18n="SUBAGENTS_TABLE_TITLE">Active Subagent Instances</h3>
+        <p class="text-on-surface-variant text-label-sm" data-i18n="SUBAGENTS_TABLE_DESC">Subagents inherit core credentials and tool configs, reporting back details asynchronously.</p>
       </div>
     </div>
 
@@ -20,15 +20,16 @@
       <table class="w-full text-left font-code-md text-code-md text-on-surface-variant border-collapse">
         <thead>
           <tr class="border-b border-outline-variant text-label-sm text-on-background">
-            <th class="py-3 px-4">Subagent ID</th>
-            <th class="py-3 px-4">Role</th>
-            <th class="py-3 px-4">Workspace</th>
-            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4" data-i18n="SUBAGENTS_COL_ID">Task ID</th>
+            <th class="py-3 px-4" data-i18n="SUBAGENTS_COL_TYPE">Task Type</th>
+            <th class="py-3 px-4" data-i18n="SUBAGENTS_COL_DESC">Task Description</th>
+            <th class="py-3 px-4" data-i18n="SUBAGENTS_COL_STATUS">Status</th>
+            <th class="py-3 px-4 text-right" data-i18n="SUBAGENTS_COL_ACTIONS">Actions</th>
           </tr>
         </thead>
         <tbody id="subagents-list">
           <tr class="border-b border-outline-variant/50">
-            <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">No active subagents running.</td>
+            <td class="py-4 px-4 text-center text-label-sm text-on-surface-variant" colspan="5" data-i18n="SUBAGENTS_NO_ACTIVE">No active subagents running.</td>
           </tr>
         </tbody>
       </table>

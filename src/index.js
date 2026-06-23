@@ -6,8 +6,12 @@ let isRunning = false;
 let currentLanguage = 'en';
 let pendingNewConversationContext = null;
 let openDetailsState = {};
+let detailsScrollState = {}; // { detailsId: { scrollTop: number, shouldAutoScroll: boolean } }
 let lastProcessedStepIndex = -1;
 let backgroundPollInterval = null;
+
+// Draft storage to preserve inputs across tab switching and conversation switching
+let conversationDrafts = {}; // { 'new' or conversationId: { promptText: '', attachedImage: null } }
 
 // Dialog wrappers to prevent focus loss in Electron
 async function appConfirm(message, title = '') {
@@ -30,7 +34,8 @@ async function appAlert(message, title = '') {
   if (window.api && window.api.showAlert) {
     await window.api.showAlert({
       message,
-      title: title || (currentLanguage === 'zh' ? '提示' : 'Alert')
+      title: title || (currentLanguage === 'zh' ? '提示' : 'Alert'),
+      buttonLabel: currentLanguage === 'zh' ? '确定' : 'OK'
     });
     const promptInput = document.getElementById('prompt-input');
     if (promptInput) promptInput.focus();
@@ -81,6 +86,7 @@ const TRANSLATIONS = {
     "SETTINGS_RUN_DIAG": "Run Diagnostics",
     "SETTINGS_LOGIN_BTN": "Login to CLI",
     "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI Changelog",
+    "SETTINGS_VIEW_CHANGELOG": "View Changelog",
     "TOOLS_HEADER": "Tools & Plugins",
     "TOOLS_DESC": "Configure external plugin packages, custom commands, and MCP server transports.",
     "TOOLS_PLUGINS_TITLE": "Installed Plugin Packages",
@@ -100,7 +106,42 @@ const TRANSLATIONS = {
     "TOOLS_MCP_ADD_BTN": "Add MCP Server",
     "LOGIN": "Login",
     "SETTINGS_PROXY": "Proxy Server",
-    "SETTINGS_PROXY_PLACEHOLDER": "e.g. http://127.0.0.1:10808"
+    "SETTINGS_PROXY_PLACEHOLDER": "e.g. http://127.0.0.1:10808",
+    "SUBAGENTS_HEADER": "Subagents Manager",
+    "SUBAGENTS_DESC": "Monitor and manage autonomous subagents running concurrently on specific tasks.",
+    "SUBAGENTS_TABLE_TITLE": "Active Subagent Instances",
+    "SUBAGENTS_TABLE_DESC": "Subagents inherit core credentials and tool configs, reporting back details asynchronously.",
+    "SUBAGENTS_COL_ID": "Task ID",
+    "SUBAGENTS_COL_TYPE": "Task Type",
+    "SUBAGENTS_COL_DESC": "Task Description",
+    "SUBAGENTS_COL_STATUS": "Status",
+    "SUBAGENTS_COL_ACTIONS": "Actions",
+    "NEW_TASK": "New Task",
+    "SEARCH_CONVERSATIONS_PLACEHOLDER": "Search conversations...",
+    "LOADING_HISTORY": "Loading history...",
+    "NO_ACTIVE_SESSION": "No Active Session",
+    "WELCOME_TITLE": "Welcome to Antigravity CLI",
+    "WELCOME_DESC": "Start a new development session or resume a previous conversation. Run tasks, explore the codebase, edit files, and automate your workflow.",
+    "AGENT_RUNNING_STEPS": "Agent Running Steps...",
+    "CANCEL_TASK": "Cancel Task",
+    "PROMPT_INPUT_PLACEHOLDER": "Send a prompt to the agent (Shift+Enter for new line)...",
+    "LABEL_WORKSPACE": "Workspace:",
+    "PRESS_KBD_PRE": "Press ",
+    "PRESS_KBD_POST": " to run",
+    "ATTACHED_IMAGE": "Attached Image",
+    "REMOVE_IMAGE": "Remove Image",
+    "WORKSPACES_TITLE": "Workspaces",
+    "WORKSPACES_DESC": "Manage and select your local development folders mapped to Antigravity CLI projects.",
+    "ADD_DIRECTORY": "Add Directory",
+    "NO_WORKSPACES_FOUND": "No workspaces found. Click \"Add Directory\" to register a folder.",
+    "CHANGES_TITLE": "VCS Changes & Diff Review",
+    "CHANGES_DESC": "Review local repository file additions, deletions, modifications, and git diff details.",
+    "CHANGES_MODIFIED_FILES": "Modified Workspace Files",
+    "CHANGES_TRACK_FILES": "Track files touched or created by agent processes in the current active workspace directory.",
+    "CHANGES_ALL_SYNCED": "All workspace files are synced. No uncommitted modifications or diff files to display.",
+    "SUBAGENTS_NO_ACTIVE": "No active subagents running.",
+    "TOOLS_LOADING_PLUGINS": "Loading installed plugins...",
+    "TOOLS_LOADING_MCP": "Loading custom MCP servers..."
   },
   zh: {
     "NAV_CONVERSATIONS": "会话列表",
@@ -139,6 +180,7 @@ const TRANSLATIONS = {
     "SETTINGS_RUN_DIAG": "运行系统诊断",
     "SETTINGS_LOGIN_BTN": "登录 CLI",
     "SETTINGS_CHANGELOG_TITLE": "Antigravity CLI 更新日志",
+    "SETTINGS_VIEW_CHANGELOG": "查看更新日志",
     "TOOLS_HEADER": "工具与扩展插件",
     "TOOLS_DESC": "配置外部插件包、自定义命令以及 MCP 服务端传输协议。",
     "TOOLS_PLUGINS_TITLE": "已安装的插件扩展包 (Plugins)",
@@ -158,7 +200,42 @@ const TRANSLATIONS = {
     "TOOLS_MCP_ADD_BTN": "添加服务器",
     "LOGIN": "登录",
     "SETTINGS_PROXY": "代理服务器",
-    "SETTINGS_PROXY_PLACEHOLDER": "例如：http://127.0.0.1:10808"
+    "SETTINGS_PROXY_PLACEHOLDER": "例如：http://127.0.0.1:10808",
+    "SUBAGENTS_HEADER": "子智能体管理",
+    "SUBAGENTS_DESC": "监控和管理并行运行在特定任务上的自治子智能体。",
+    "SUBAGENTS_TABLE_TITLE": "活动的子任务实例",
+    "SUBAGENTS_TABLE_DESC": "子智能体继承核心凭证与工具配置，并异步向主智能体汇报详情。",
+    "SUBAGENTS_COL_ID": "任务 ID",
+    "SUBAGENTS_COL_TYPE": "任务类型",
+    "SUBAGENTS_COL_DESC": "任务描述/命令",
+    "SUBAGENTS_COL_STATUS": "状态",
+    "SUBAGENTS_COL_ACTIONS": "操作",
+    "NEW_TASK": "新建任务",
+    "SEARCH_CONVERSATIONS_PLACEHOLDER": "搜索会话...",
+    "LOADING_HISTORY": "正在加载历史会话...",
+    "NO_ACTIVE_SESSION": "无活跃会话",
+    "WELCOME_TITLE": "欢迎使用 Antigravity CLI",
+    "WELCOME_DESC": "开启新的开发会话或恢复先前的对话。运行任务、浏览代码库、编辑文件并自动化您的工作流。",
+    "AGENT_RUNNING_STEPS": "智能体执行步骤中...",
+    "CANCEL_TASK": "取消任务",
+    "PROMPT_INPUT_PLACEHOLDER": "向智能体发送指令（Shift+Enter 换行）...",
+    "LABEL_WORKSPACE": "工作区:",
+    "PRESS_KBD_PRE": "按 ",
+    "PRESS_KBD_POST": " 运行",
+    "ATTACHED_IMAGE": "已附图片",
+    "REMOVE_IMAGE": "移除图片",
+    "WORKSPACES_TITLE": "工作区管理",
+    "WORKSPACES_DESC": "管理并选择与 Antigravity CLI 项目关联的本地开发工作区。",
+    "ADD_DIRECTORY": "添加工作区",
+    "NO_WORKSPACES_FOUND": "未找到任何工作区。点击“添加工作区”注册新文件夹。",
+    "CHANGES_TITLE": "VCS 代码变更与 Diff 评审",
+    "CHANGES_DESC": "评审本地仓库中的文件新增、删除、修改状态以及 Git Diff 差异细节。",
+    "CHANGES_MODIFIED_FILES": "已修改的工作区文件",
+    "CHANGES_TRACK_FILES": "追踪在当前活跃工作区目录下被智能体执行过程触及或创建的文件。",
+    "CHANGES_ALL_SYNCED": "所有工作区文件已同步。没有未提交的修改或 Diff 差异文件可显示。",
+    "SUBAGENTS_NO_ACTIVE": "当前没有活动的子智能体运行。",
+    "TOOLS_LOADING_PLUGINS": "正在加载插件列表...",
+    "TOOLS_LOADING_MCP": "正在加载自定义 MCP 服务..."
   }
 };
 
@@ -175,6 +252,13 @@ function translateDOM(container = document) {
     const key = el.dataset.i18nPlaceholder;
     if (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) {
       el.placeholder = TRANSLATIONS[currentLanguage][key];
+    }
+  });
+
+  container.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    if (TRANSLATIONS[currentLanguage] && TRANSLATIONS[currentLanguage][key]) {
+      el.title = TRANSLATIONS[currentLanguage][key];
     }
   });
 }
@@ -298,7 +382,7 @@ async function init() {
   
   // Set active connections
   connectionDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm';
-  connectionDot.title = 'Connected';
+  connectionDot.title = currentLanguage === 'zh' ? '已连接' : 'Connected';
   authStatusLabel.textContent = currentLanguage === 'zh' ? '专业版 • 已连接' : 'Pro Plan • Connected';
   
   await updateLoginStatus();
@@ -483,6 +567,72 @@ function parseTasksFromSteps(steps) {
 }
 
 // Renders the parsed tasks summary inside the chat window
+async function showLogModal(taskId) {
+  const modalId = 'task-log-modal';
+  let modal = document.getElementById(modalId);
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.className = 'fixed inset-0 bg-background/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 md:p-8 animate-fade-in';
+  modal.innerHTML = `
+    <div class="glass-panel w-full max-w-4xl h-[80vh] flex flex-col rounded-lg border border-outline-variant shadow-2xl overflow-hidden bg-surface-container-low">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container-high/40 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">description</span>
+          <h3 class="font-headline-md font-bold text-on-background" style="font-size: 16px;">
+            ${currentLanguage === 'zh' ? `任务日志: #${taskId}` : `Task Log: #${taskId}`}
+          </h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="modal-refresh-btn" class="p-1.5 hover:bg-surface-variant rounded text-on-surface-variant hover:text-on-surface transition-colors" title="${currentLanguage === 'zh' ? '刷新' : 'Refresh'}">
+            <span class="material-symbols-outlined text-[20px]">refresh</span>
+          </button>
+          <button id="modal-close-btn" class="p-1.5 hover:bg-surface-variant rounded text-on-surface-variant hover:text-on-surface transition-colors" title="${currentLanguage === 'zh' ? '关闭' : 'Close'}">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Content -->
+      <div class="flex-1 p-6 overflow-auto bg-surface-container-lowest font-code-md text-code-md select-text">
+        <pre id="modal-log-content" class="text-on-surface whitespace-pre-wrap font-mono text-[12px] leading-relaxed">Loading log content...</pre>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const logContentPre = modal.querySelector('#modal-log-content');
+  const closeBtn = modal.querySelector('#modal-close-btn');
+  const refreshBtn = modal.querySelector('#modal-refresh-btn');
+
+  async function loadLogContent() {
+    logContentPre.textContent = currentLanguage === 'zh' ? '正在加载日志内容...' : 'Loading log content...';
+    try {
+      const res = await window.api.getTaskLog(currentConversationId, `task-${taskId}`);
+      if (res.success) {
+        logContentPre.textContent = res.content || (currentLanguage === 'zh' ? '日志内容为空。' : 'Log content is empty.');
+        logContentPre.parentElement.scrollTop = logContentPre.parentElement.scrollHeight;
+      } else {
+        logContentPre.textContent = `Error: ${res.error}`;
+      }
+    } catch (err) {
+      logContentPre.textContent = `Error: ${err.message}`;
+    }
+  }
+
+  closeBtn.addEventListener('click', () => modal.remove());
+  refreshBtn.addEventListener('click', loadLogContent);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+
+  await loadLogContent();
+}
+
 function renderTasksListBubble(tasks) {
   let listHtml = '';
   if (tasks.length === 0) {
@@ -505,10 +655,10 @@ function renderTasksListBubble(tasks) {
       }
 
       const logButton = t.logFile
-        ? `<a href="${t.logFile}" target="_blank" class="text-xs text-primary hover:underline flex items-center gap-1">
+        ? `<button data-task-id="${t.shortId.replace('task-', '').replace('subagent-', '')}" class="chat-view-log-btn text-xs text-primary hover:underline flex items-center gap-1 bg-transparent border-0 cursor-pointer">
              <span class="material-symbols-outlined text-[14px]">description</span>
              ${currentLanguage === 'zh' ? '查看日志' : 'View Log'}
-           </a>`
+           </button>`
         : '';
 
       return `
@@ -547,6 +697,14 @@ function renderTasksListBubble(tasks) {
 async function initConversationView() {
   const convList = document.getElementById('conv-list');
   const chatMessages = document.getElementById('chat-messages');
+  chatMessages.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chat-view-log-btn');
+    if (btn) {
+      e.preventDefault();
+      const taskId = btn.dataset.taskId;
+      showLogModal(taskId);
+    }
+  });
   const newChatBtn = document.getElementById('new-chat-btn');
   const sendPromptBtn = document.getElementById('send-prompt-btn');
   const promptInput = document.getElementById('prompt-input');
@@ -571,6 +729,40 @@ async function initConversationView() {
   let allConvs = [];
   let activeAttachedImage = null;
   let tempImagesToDelete = [];
+  let shouldAutoScrollSteps = true;
+
+  function restoreDraft() {
+    const key = currentConversationId || 'new';
+    const draft = conversationDrafts[key];
+    if (draft) {
+      if (promptInput) promptInput.value = draft.promptText || '';
+      if (draft.attachedImage) {
+        activeAttachedImage = draft.attachedImage.filePath;
+        if (!tempImagesToDelete.includes(activeAttachedImage)) {
+          tempImagesToDelete.push(activeAttachedImage);
+        }
+        if (attachedImageThumb) attachedImageThumb.src = draft.attachedImage.dataSrc || '';
+        if (attachedImageName) attachedImageName.textContent = draft.attachedImage.name || '';
+        if (attachedImageSize) attachedImageSize.textContent = draft.attachedImage.size || '';
+        if (imagePreviewContainer) imagePreviewContainer.classList.remove('hidden');
+      } else {
+        activeAttachedImage = null;
+        if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
+        if (attachedImageThumb) attachedImageThumb.src = '';
+        if (attachedImageName) attachedImageName.textContent = '';
+        if (attachedImageSize) attachedImageSize.textContent = '';
+      }
+    } else {
+      if (promptInput) promptInput.value = '';
+      activeAttachedImage = null;
+      if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
+      if (attachedImageThumb) attachedImageThumb.src = '';
+      if (attachedImageName) attachedImageName.textContent = '';
+      if (attachedImageSize) attachedImageSize.textContent = '';
+    }
+    updateInputState();
+  }
+
   const runTracking = {
     pollTimer: null,
     elapsedTimer: null,
@@ -647,6 +839,12 @@ async function initConversationView() {
     runTracking.elapsedTimer = setInterval(renderRunHeader, 1000);
     pollRunningConversation();
     runTracking.pollTimer = setInterval(pollRunningConversation, 1500);
+
+    // Reset steps auto-scroll state
+    shouldAutoScrollSteps = true;
+    if (stepProgress) {
+      stepProgress.scrollTop = stepProgress.scrollHeight;
+    }
   }
 
   function stopLiveRunTracking(finalPhase = 'done') {
@@ -666,7 +864,22 @@ async function initConversationView() {
   }
   
   renderRunHeader();
-  promptInput.addEventListener('input', updateInputState);
+
+  if (stepProgress) {
+    stepProgress.addEventListener('scroll', () => {
+      // If the user scrolls close to the bottom (within 10px), set auto-scroll to true.
+      // Otherwise set it to false (meaning they scrolled up and want to lock screen position).
+      const distanceFromBottom = stepProgress.scrollHeight - stepProgress.scrollTop - stepProgress.clientHeight;
+      shouldAutoScrollSteps = distanceFromBottom < 10;
+    });
+  }
+
+  promptInput.addEventListener('input', () => {
+    const key = currentConversationId || 'new';
+    if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImage: null };
+    conversationDrafts[key].promptText = promptInput.value;
+    updateInputState();
+  });
 
   // Helper to handle attached/dropped image file
   async function handleAttachedImage(file) {
@@ -701,6 +914,17 @@ async function initConversationView() {
         if (res.success) {
           activeAttachedImage = res.filePath;
           tempImagesToDelete.push(res.filePath);
+          
+          // Save to drafts
+          const key = currentConversationId || 'new';
+          if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImage: null };
+          conversationDrafts[key].attachedImage = {
+            filePath: res.filePath,
+            name: file.name || (currentLanguage === 'zh' ? '剪切板图片.png' : 'clipboard_image.png'),
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            dataSrc: e.target.result
+          };
+          
           updateInputState();
         } else {
           await appAlert(`Save failed: ${res.error}`);
@@ -716,6 +940,11 @@ async function initConversationView() {
     if (activeAttachedImage) {
       window.api.deleteImageFile(activeAttachedImage).catch(console.error);
       activeAttachedImage = null;
+    }
+    // Clear from drafts
+    const key = currentConversationId || 'new';
+    if (conversationDrafts[key]) {
+      conversationDrafts[key].attachedImage = null;
     }
     imagePreviewContainer.classList.add('hidden');
     attachedImageThumb.src = '';
@@ -888,6 +1117,46 @@ async function initConversationView() {
       const id = details.getAttribute('data-details-id');
       if (id) {
         openDetailsState[id] = details.open;
+        if (details.open) {
+          if (!detailsScrollState[id]) {
+            detailsScrollState[id] = {
+              scrollTop: 0,
+              shouldAutoScroll: true
+            };
+          }
+          const container = details.querySelector('.step-details-container');
+          if (container) {
+            if (detailsScrollState[id].shouldAutoScroll) {
+              container.scrollTop = container.scrollHeight;
+              detailsScrollState[id].scrollTop = container.scrollTop;
+            } else {
+              container.scrollTop = detailsScrollState[id].scrollTop;
+            }
+          }
+        }
+      }
+    }
+  }, true);
+
+  chatMessages.addEventListener('scroll', (e) => {
+    const container = e.target;
+    if (container && container.classList.contains('step-details-container')) {
+      const details = container.closest('details');
+      if (details) {
+        const id = details.getAttribute('data-details-id');
+        if (id) {
+          const scrollTop = container.scrollTop;
+          const scrollHeight = container.scrollHeight;
+          const clientHeight = container.clientHeight;
+          const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+          
+          if (!detailsScrollState[id]) {
+            detailsScrollState[id] = {};
+          }
+          
+          detailsScrollState[id].scrollTop = scrollTop;
+          detailsScrollState[id].shouldAutoScroll = distanceFromBottom < 15;
+        }
       }
     }
   }, true);
@@ -1176,6 +1445,7 @@ async function initConversationView() {
         
         loadConversations(); // refresh highlights
         await loadConversationDetails(id);
+        restoreDraft();
       });
     });
 
@@ -1468,7 +1738,7 @@ async function initConversationView() {
                   <span class="material-symbols-outlined text-[16px] group-open:rotate-180 transition-transform duration-200">expand_more</span>
                 </div>
               </summary>
-              <div class="border-t border-outline-variant/40 p-4 space-y-4 bg-surface-container-lowest select-text max-h-[400px] overflow-y-auto font-sans">
+              <div class="step-details-container border-t border-outline-variant/40 p-4 space-y-4 bg-surface-container-lowest select-text max-h-[400px] overflow-y-auto font-sans">
                 ${stepsHtml}
               </div>
             </details>
@@ -1512,6 +1782,29 @@ async function initConversationView() {
     });
 
     chatMessages.innerHTML = html;
+
+    // Restore scroll positions of any open details containers
+    const openDetailsList = chatMessages.querySelectorAll('details[open]');
+    openDetailsList.forEach(details => {
+      const id = details.getAttribute('data-details-id');
+      if (id) {
+        const container = details.querySelector('.step-details-container');
+        if (container) {
+          const state = detailsScrollState[id];
+          if (state) {
+            if (state.shouldAutoScroll) {
+              container.scrollTop = container.scrollHeight;
+            } else {
+              container.scrollTop = state.scrollTop;
+            }
+          } else {
+            // Default when no state exists but it is open: scroll to bottom
+            container.scrollTop = container.scrollHeight;
+          }
+        }
+      }
+    });
+
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -1521,8 +1814,11 @@ async function initConversationView() {
     const prompt = promptInput.value.trim();
     if ((!prompt && !activeAttachedImage) || isRunning || !activeWorkspace) return;
 
-    if (prompt === '/tasks' || prompt === '/task') {
+    const tasksMatch = prompt.match(/^\/(tasks|task)(?:\s+(task-\d+|\d+))?$/);
+    if (tasksMatch) {
       promptInput.value = '';
+      const key = currentConversationId || 'new';
+      delete conversationDrafts[key];
       updateInputState();
       
       // Render user prompt in chat
@@ -1549,29 +1845,66 @@ async function initConversationView() {
         return;
       }
 
-      try {
-        const res = await window.api.getTasksList(currentConversationId);
-        if (res && res.success) {
-          const formattedTasks = res.tasks.map(t => ({
-            id: t.fullId,
-            shortId: t.type === 'subagent' ? `subagent-${t.id}` : `task-${t.id}`,
-            command: t.description,
-            action: t.type === 'subagent' ? 'Subagent Instance' : (t.type === 'timer' ? 'Scheduled Timer' : 'Background Command'),
-            status: t.status.toLowerCase(),
-            logFile: t.logFile || ''
-          }));
-          chatMessages.innerHTML += renderTasksListBubble(formattedTasks);
-        } else {
-          throw new Error(res.error || 'Failed to query tasks');
+      const taskIdArg = tasksMatch[2];
+      if (taskIdArg) {
+        const taskId = taskIdArg.startsWith('task-') ? taskIdArg : `task-${taskIdArg}`;
+        try {
+          const res = await window.api.getTaskLog(currentConversationId, taskId);
+          if (res && res.success) {
+            chatMessages.innerHTML += `
+              <div class="p-4 rounded-lg border border-outline-variant bg-surface-container border-l-4 border-primary space-y-3 my-2 select-text">
+                <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
+                  <div class="flex items-center gap-2 text-primary font-bold">
+                    <span class="material-symbols-outlined text-[18px]">terminal</span>
+                    <span>${currentLanguage === 'zh' ? `任务 ${taskId} 执行日志` : `Task ${taskId} Execution Log`}</span>
+                  </div>
+                  <span class="text-outline-variant">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <pre class="bg-surface-container-low text-on-surface-variant p-3 rounded font-code-sm text-code-sm overflow-x-auto whitespace-pre max-h-96 select-text text-left">${escapeHTML(res.content || (currentLanguage === 'zh' ? '该任务日志为空。' : 'Log content is empty.'))}</pre>
+              </div>
+            `;
+          } else {
+            chatMessages.innerHTML += `
+              <div class="p-4 rounded-lg border border-error bg-error/5 border-l-4 space-y-2 text-error text-body-md">
+                ${currentLanguage === 'zh' ? `未找到任务 ${taskId} 的日志文件。` : `Could not locate log file for task ${taskId}.`}
+              </div>
+            `;
+          }
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (err) {
+          chatMessages.innerHTML += `
+            <div class="p-4 rounded-lg border border-error bg-error/5 border-l-4 space-y-2 text-error text-body-md">
+              Failed to query task log: ${err.message}
+            </div>
+          `;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      } catch (err) {
-        chatMessages.innerHTML += `
-          <div class="p-4 rounded-lg border border-error bg-error/5 border-l-4 space-y-2 text-error text-body-md">
-            Failed to query tasks: ${err.message}
-          </div>
-        `;
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } else {
+        // List all tasks
+        try {
+          const res = await window.api.getTasksList(currentConversationId);
+          if (res && res.success) {
+            const formattedTasks = res.tasks.map(t => ({
+              id: t.fullId,
+              shortId: t.type === 'subagent' ? `subagent-${t.id}` : `task-${t.id}`,
+              command: t.description,
+              action: t.type === 'subagent' ? 'Subagent Instance' : (t.type === 'timer' ? 'Scheduled Timer' : 'Background Command'),
+              status: t.status.toLowerCase(),
+              logFile: t.logFile || ''
+            }));
+            chatMessages.innerHTML += renderTasksListBubble(formattedTasks);
+          } else {
+            throw new Error(res.error || 'Failed to query tasks');
+          }
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (err) {
+          chatMessages.innerHTML += `
+            <div class="p-4 rounded-lg border border-error bg-error/5 border-l-4 space-y-2 text-error text-body-md">
+              Failed to query tasks: ${err.message}
+            </div>
+          `;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
       }
       return;
     }
@@ -1581,6 +1914,8 @@ async function initConversationView() {
 
     isRunning = true;
     promptInput.value = '';
+    const key = currentConversationId || 'new';
+    delete conversationDrafts[key];
     
     let finalPrompt = prompt;
     const attachedImgPath = activeAttachedImage;
@@ -1683,7 +2018,9 @@ async function initConversationView() {
     logLine.className = data.stream === 'stderr' ? 'text-error' : 'text-on-surface-variant';
     logLine.textContent = text;
     stepLogs.appendChild(logLine);
-    stepProgress.scrollTop = stepProgress.scrollHeight;
+    if (shouldAutoScrollSteps) {
+      stepProgress.scrollTop = stepProgress.scrollHeight;
+    }
   });
 
   const removeAgyExitListener = window.api.onAgyExit(async (code) => {
@@ -1727,6 +2064,7 @@ async function initConversationView() {
       </div>
     `;
     loadConversations();
+    restoreDraft();
   });
 
   // Clean listeners on navigate away
@@ -1741,23 +2079,26 @@ async function initConversationView() {
       backgroundPollInterval = null;
     }
     
-    // Clean up any remaining temp files in the workspace
-    if (tempImagesToDelete.length > 0) {
-      for (const filePath of tempImagesToDelete) {
-        try {
-          await window.api.deleteImageFile(filePath);
-        } catch (err) {
-          console.error("Cleanup temp image on navigate failed:", err);
-        }
-      }
-      tempImagesToDelete = [];
+    // Save draft before navigating away
+    const key = currentConversationId || 'new';
+    if (!conversationDrafts[key]) {
+      conversationDrafts[key] = { promptText: '', attachedImage: null };
+    }
+    if (promptInput) {
+      conversationDrafts[key].promptText = promptInput.value;
     }
     if (activeAttachedImage) {
-      try {
-        await window.api.deleteImageFile(activeAttachedImage);
-      } catch (e) {}
+      conversationDrafts[key].attachedImage = {
+        filePath: activeAttachedImage,
+        name: attachedImageName.textContent,
+        size: attachedImageSize.textContent,
+        dataSrc: attachedImageThumb.src
+      };
       activeAttachedImage = null;
+    } else {
+      conversationDrafts[key].attachedImage = null;
     }
+    tempImagesToDelete = [];
 
     navigateTo = oldNavigateTo; // restore
     await navigateTo(vName);
@@ -1772,6 +2113,8 @@ async function initConversationView() {
       try {
         const details = await window.api.getConversationDetails(currentConversationId);
         const signature = getConversationSignature(details.steps);
+        const maxStepIdx = details.steps.reduce((max, s) => Math.max(max, s.index), -1);
+
         if (signature !== runTracking.lastSignature) {
           runTracking.lastSignature = signature;
           renderMessages(details.steps);
@@ -1784,10 +2127,15 @@ async function initConversationView() {
           shouldAutoResume = true;
           console.log("Detected unread messages in inbox: auto-resuming conversation...");
         } else {
-          // Backup fallback check for database step type 101
-          const lastStep = details.steps[details.steps.length - 1];
-          if (lastStep && lastStep.type === 101) {
-            const hasTaskNotification = lastStep.rawStrings && lastStep.rawStrings.some(s => s.includes('task_notification') || s.includes('finished with result') || s.includes('was canceled') || s.includes('canceled'));
+          // Trigger if there is a new step that is a task notification since lastProcessedStepIndex
+          if (lastProcessedStepIndex !== -1 && maxStepIdx > lastProcessedStepIndex) {
+            const newSteps = details.steps.filter(s => s.index > lastProcessedStepIndex);
+            const hasTaskNotification = newSteps.some(s => 
+              s.type === 101 && s.rawStrings && s.rawStrings.some(str => 
+                str.includes('task_notification') || str.includes('finished with result') || str.includes('was canceled') || str.includes('canceled')
+              )
+            );
+
             if (hasTaskNotification) {
               shouldAutoResume = true;
               console.log("Detected unprocessed task notification in database: auto-resuming conversation...");
@@ -1796,6 +2144,8 @@ async function initConversationView() {
         }
 
         if (shouldAutoResume) {
+          lastProcessedStepIndex = maxStepIdx; // Update to prevent duplicate trigger
+          
           isRunning = true;
           updateInputState();
           stepProgress.classList.remove('hidden');
@@ -1812,6 +2162,11 @@ async function initConversationView() {
             stopLiveRunTracking('stopped');
           });
         }
+
+        if (maxStepIdx > lastProcessedStepIndex) {
+          lastProcessedStepIndex = maxStepIdx;
+        }
+
       } catch (err) {
         console.error("Background DB/notification poll error:", err);
       }
@@ -1821,6 +2176,16 @@ async function initConversationView() {
   // Initial load
   loadConversations();
   startBackgroundDatabasePolling();
+  
+  if (currentConversationId) {
+    loadConversationDetails(currentConversationId).then(() => {
+      restoreDraft();
+    }).catch(() => {
+      restoreDraft();
+    });
+  } else {
+    restoreDraft();
+  }
 }
 
 // --- WORKSPACE VIEW CONTROLLER ---
@@ -1927,83 +2292,174 @@ async function initSubagentsView() {
   const subagentsList = document.getElementById('subagents-list');
   if (!subagentsList) return;
 
-  if (!currentConversationId) {
-    subagentsList.innerHTML = `
-      <tr class="border-b border-outline-variant/50">
-        <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
-          ${currentLanguage === 'zh' ? '请先在会话控制台中选择一个会话以查看其关联的后台任务。' : 'Please select a conversation in the console first to view its background tasks.'}
-        </td>
-      </tr>
-    `;
-    return;
-  }
+  let pollInterval = null;
 
-  try {
-    const res = await window.api.getTasksList(currentConversationId);
-    if (!res || !res.success) {
-      throw new Error(res ? res.error : 'Failed to query tasks');
-    }
-
-    const tasks = res.tasks.map(t => ({
-      id: t.fullId,
-      shortId: t.type === 'subagent' ? `subagent-${t.id}` : `task-${t.id}`,
-      command: t.description,
-      action: t.type === 'subagent' ? 'Subagent Instance' : (t.type === 'timer' ? 'Scheduled Timer' : 'Background Command'),
-      status: t.status.toLowerCase(),
-      logFile: t.logFile || ''
-    }));
-
-    if (tasks.length === 0) {
+  async function loadSubagents() {
+    if (!currentConversationId) {
       subagentsList.innerHTML = `
         <tr class="border-b border-outline-variant/50">
-          <td class="py-4 px-4 text-center col-span-4 text-label-sm text-on-surface-variant" colspan="4">
-            ${currentLanguage === 'zh' ? '当前会话没有发现任何子任务。' : 'No background tasks found in the selected conversation.'}
+          <td class="py-4 px-4 text-center col-span-5 text-label-sm text-on-surface-variant" colspan="5">
+            ${currentLanguage === 'zh' ? '请先在会话控制台中选择一个会话以查看其关联的后台任务。' : 'Please select a conversation in the console first to view its background tasks.'}
           </td>
         </tr>
       `;
       return;
     }
 
-    subagentsList.innerHTML = tasks.map(t => {
-      let statusBadge = '';
-      if (t.status === 'completed') {
-        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">${currentLanguage === 'zh' ? '已完成' : 'Completed'}</span>`;
-      } else if (t.status === 'canceled') {
-        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-surface-variant text-on-surface-variant border border-outline-variant">${currentLanguage === 'zh' ? '已取消' : 'Canceled'}</span>`;
-      } else if (t.status === 'failed') {
-        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-error/10 text-error border border-error/20">${currentLanguage === 'zh' ? '已失败' : 'Failed'}</span>`;
-      } else {
-        statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">${currentLanguage === 'zh' ? '运行中' : 'Running'}</span>`;
+    try {
+      const res = await window.api.getTasksList(currentConversationId);
+      if (!res || !res.success) {
+        throw new Error(res ? res.error : 'Failed to query tasks');
       }
 
-      const logLink = t.logFile
-        ? `<a href="${t.logFile}" target="_blank" class="text-primary hover:underline inline-flex items-center gap-1 ml-3">
-             <span class="material-symbols-outlined text-[16px]">description</span>
-             ${currentLanguage === 'zh' ? '日志' : 'Log'}
-           </a>`
-        : '';
+      const tasks = res.tasks || [];
+      if (tasks.length === 0) {
+        subagentsList.innerHTML = `
+          <tr class="border-b border-outline-variant/50">
+            <td class="py-4 px-4 text-center col-span-5 text-label-sm text-on-surface-variant" colspan="5">
+              ${currentLanguage === 'zh' ? '当前会话没有发现任何子任务。' : 'No background tasks found in the selected conversation.'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
 
-      return `
-        <tr class="border-b border-outline-variant/50 hover:bg-surface-variant/30 transition-colors">
-          <td class="py-3 px-4 font-bold text-on-surface font-code-md">${t.shortId}</td>
-          <td class="py-3 px-4 text-on-surface-variant">${t.action}</td>
-          <td class="py-3 px-4 text-on-surface-variant font-code-sm truncate max-w-xs" title="${t.command}">${t.command}</td>
-          <td class="py-3 px-4 flex items-center justify-between">
-            ${statusBadge}
-            ${logLink}
+      subagentsList.innerHTML = tasks.map(t => {
+        let statusBadge = '';
+        const lowerStatus = t.status.toLowerCase();
+        if (lowerStatus === 'completed' || lowerStatus === 'finished') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">${currentLanguage === 'zh' ? '已完成' : 'Completed'}</span>`;
+        } else if (lowerStatus === 'canceled' || lowerStatus === 'cancelled') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-surface-variant text-on-surface-variant border border-outline-variant">${currentLanguage === 'zh' ? '已取消' : 'Canceled'}</span>`;
+        } else if (lowerStatus === 'failed') {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-error/10 text-error border border-error/20">${currentLanguage === 'zh' ? '已失败' : 'Failed'}</span>`;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 animate-pulse">${currentLanguage === 'zh' ? '运行中' : 'Running'}</span>`;
+        }
+
+        const taskDisplayType = t.type === 'subagent'
+          ? (currentLanguage === 'zh' ? '子智能体' : 'Subagent')
+          : (t.type === 'timer' ? (currentLanguage === 'zh' ? '定时任务' : 'Timer') : (currentLanguage === 'zh' ? '后台命令' : 'Command'));
+
+        const actionBtn = `
+          <button data-task-id="${t.id}" class="view-task-log-btn text-primary hover:underline font-label-sm text-label-sm inline-flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px]">description</span>
+            ${currentLanguage === 'zh' ? '查看日志' : 'View Log'}
+          </button>
+        `;
+
+        return `
+          <tr class="border-b border-outline-variant/30 hover:bg-surface-variant/30 transition-colors">
+            <td class="py-3 px-4 font-bold text-on-surface font-code-md">#${t.id}</td>
+            <td class="py-3 px-4 text-on-surface-variant">${taskDisplayType}</td>
+            <td class="py-3 px-4 text-on-surface-variant font-code-sm truncate max-w-xs select-text" title="${t.description}">${t.description}</td>
+            <td class="py-3 px-4">${statusBadge}</td>
+            <td class="py-3 px-4 text-right">
+              ${actionBtn}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Attach click listeners
+      document.querySelectorAll('.view-task-log-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const taskId = btn.dataset.taskId;
+          showLogModal(taskId);
+        });
+      });
+
+    } catch (err) {
+      subagentsList.innerHTML = `
+        <tr class="border-b border-outline-variant/50">
+          <td class="py-4 px-4 text-center col-span-5 text-label-sm text-error" colspan="5">
+            Error loading subagents: ${err.message}
           </td>
         </tr>
       `;
-    }).join('');
-  } catch (err) {
-    subagentsList.innerHTML = `
-      <tr class="border-b border-outline-variant/50">
-        <td class="py-4 px-4 text-center col-span-4 text-label-sm text-error" colspan="4">
-          Error loading subagents: ${err.message}
-        </td>
-      </tr>
-    `;
+    }
   }
+
+  async function showLogModal(taskId) {
+    const modalId = 'task-log-modal';
+    let modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'fixed inset-0 bg-background/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 md:p-8 animate-fade-in';
+    modal.innerHTML = `
+      <div class="glass-panel w-full max-w-4xl h-[80vh] flex flex-col rounded-lg border border-outline-variant shadow-2xl overflow-hidden bg-surface-container-low">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container-high/40 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">description</span>
+            <h3 class="font-headline-md font-bold text-on-background" style="font-size: 16px;">
+              ${currentLanguage === 'zh' ? `任务日志: #${taskId}` : `Task Log: #${taskId}`}
+            </h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="modal-refresh-btn" class="p-1.5 hover:bg-surface-variant rounded text-on-surface-variant hover:text-on-surface transition-colors" title="${currentLanguage === 'zh' ? '刷新' : 'Refresh'}">
+              <span class="material-symbols-outlined text-[20px]">refresh</span>
+            </button>
+            <button id="modal-close-btn" class="p-1.5 hover:bg-surface-variant rounded text-on-surface-variant hover:text-on-surface transition-colors" title="${currentLanguage === 'zh' ? '关闭' : 'Close'}">
+              <span class="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 p-6 overflow-auto bg-surface-container-lowest font-code-md text-code-md select-text">
+          <pre id="modal-log-content" class="text-on-surface whitespace-pre-wrap font-mono text-[12px] leading-relaxed">Loading log content...</pre>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const logContentPre = modal.querySelector('#modal-log-content');
+    const closeBtn = modal.querySelector('#modal-close-btn');
+    const refreshBtn = modal.querySelector('#modal-refresh-btn');
+
+    async function loadLogContent() {
+      logContentPre.textContent = currentLanguage === 'zh' ? '正在加载日志内容...' : 'Loading log content...';
+      try {
+        const res = await window.api.getTaskLog(currentConversationId, `task-${taskId}`);
+        if (res.success) {
+          logContentPre.textContent = res.content || (currentLanguage === 'zh' ? '日志内容为空。' : 'Log content is empty.');
+          logContentPre.parentElement.scrollTop = logContentPre.parentElement.scrollHeight;
+        } else {
+          logContentPre.textContent = `Error: ${res.error}`;
+        }
+      } catch (err) {
+        logContentPre.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    closeBtn.addEventListener('click', () => modal.remove());
+    refreshBtn.addEventListener('click', loadLogContent);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    await loadLogContent();
+  }
+
+  // Load initially and poll
+  await loadSubagents();
+  pollInterval = setInterval(loadSubagents, 3000);
+
+  // Clean listener and polling on navigate away
+  const oldNavigateTo = navigateTo;
+  navigateTo = async (vName) => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+    navigateTo = oldNavigateTo; // restore
+    await navigateTo(vName);
+  };
 }
 
 // --- TOOLS VIEW CONTROLLER ---

@@ -2,8 +2,8 @@
   <!-- Conversation List (Left Panel) -->
   <aside class="w-80 border-r border-outline-variant flex flex-col bg-surface-container-lowest shrink-0">
     <div class="p-4 border-b border-outline-variant flex items-center justify-between shrink-0">
-      <span id="sidebar-workspace-title" class="font-headline-md font-bold text-on-surface text-[14px] truncate max-w-[200px]" title="Conversations">Conversations</span>
-      <button id="new-chat-btn" class="p-1 hover:bg-surface-variant rounded text-primary transition-colors" title="New Task">
+      <span id="sidebar-workspace-title" class="font-headline-md font-bold text-on-surface text-[14px] truncate max-w-[200px]" data-i18n="NAV_CONVERSATIONS" data-i18n-title="NAV_CONVERSATIONS" title="Conversations">Conversations</span>
+      <button id="new-chat-btn" class="p-1 hover:bg-surface-variant rounded text-primary transition-colors" data-i18n-title="NEW_TASK" title="New Task">
         <span class="material-symbols-outlined text-[20px]">add_box</span>
       </button>
     </div>
@@ -11,12 +11,12 @@
     <div class="p-3 border-b border-outline-variant shrink-0">
       <div class="flex items-center bg-surface-container p-2 rounded gap-2 text-on-surface-variant">
         <span class="material-symbols-outlined text-[18px]">search</span>
-        <input type="text" id="conv-search" class="bg-transparent border-none focus:ring-0 p-0 text-body-md text-on-background placeholder-outline w-full" placeholder="Search conversations..."/>
+        <input type="text" id="conv-search" class="bg-transparent border-none focus:ring-0 p-0 text-body-md text-on-background placeholder-outline w-full" data-i18n-placeholder="SEARCH_CONVERSATIONS_PLACEHOLDER" placeholder="Search conversations..."/>
       </div>
     </div>
     <!-- Conversations List -->
     <div class="flex-1 overflow-y-auto p-2 space-y-1" id="conv-list">
-      <div class="text-center py-8 text-on-surface-variant text-label-sm">Loading history...</div>
+      <div class="text-center py-8 text-on-surface-variant text-label-sm" data-i18n="LOADING_HISTORY">Loading history...</div>
     </div>
   </aside>
 
@@ -26,7 +26,7 @@
     <div class="h-12 border-b border-outline-variant flex items-center justify-between px-6 shrink-0 bg-surface-container-low">
       <div class="flex items-center gap-3">
         <span class="material-symbols-outlined text-[20px] text-primary">forum</span>
-        <span id="current-workspace-label" class="font-code-md text-code-md text-on-surface truncate max-w-md">No Active Session</span>
+        <span id="current-workspace-label" class="font-code-md text-code-md text-on-surface truncate max-w-md" data-i18n="NO_ACTIVE_SESSION">No Active Session</span>
       </div>
     </div>
 
@@ -36,8 +36,8 @@
         <div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant">
           <span class="material-symbols-outlined text-primary text-[28px]">terminal</span>
         </div>
-        <h2 class="font-headline-md text-headline-md font-bold text-on-background">Welcome to Antigravity CLI</h2>
-        <p class="text-on-surface-variant text-body-md">
+        <h2 class="font-headline-md text-headline-md font-bold text-on-background" data-i18n="WELCOME_TITLE">Welcome to Antigravity CLI</h2>
+        <p class="text-on-surface-variant text-body-md" data-i18n="WELCOME_DESC">
           Start a new development session or resume a previous conversation. Run tasks, explore the codebase, edit files, and automate your workflow.
         </p>
       </div>
@@ -48,10 +48,10 @@
       <div class="flex items-center justify-between mb-2 shrink-0">
         <div class="flex items-center gap-2 text-primary font-label-sm text-label-sm">
           <span class="material-symbols-outlined animate-spin text-[16px]">rotate_right</span>
-          <span id="step-status-label">Agent Running Steps...</span>
+          <span id="step-status-label" data-i18n="AGENT_RUNNING_STEPS">Agent Running Steps...</span>
           <span id="step-elapsed-label" class="ml-1 rounded-full border border-outline-variant/60 bg-surface-container px-2 py-0.5 font-code-sm text-code-sm text-outline">00:00</span>
         </div>
-        <button id="stop-agent-btn" class="text-error hover:underline font-label-sm text-label-sm">Cancel Task</button>
+        <button id="stop-agent-btn" class="text-error hover:underline font-label-sm text-label-sm" data-i18n="CANCEL_TASK">Cancel Task</button>
       </div>
       <div id="step-logs" class="font-code-sm text-code-sm text-on-surface-variant space-y-1">
         <!-- Live step logs piped here -->
@@ -71,25 +71,29 @@
           <div class="flex items-center gap-2 min-w-0">
             <img id="attached-image-thumb" class="w-10 h-10 object-cover rounded border border-outline-variant shrink-0" src="" />
             <div class="min-w-0">
-              <span class="text-[11px] font-bold text-on-background block truncate" id="attached-image-name">Attached Image</span>
+              <span class="text-[11px] font-bold text-on-background block truncate" id="attached-image-name" data-i18n="ATTACHED_IMAGE">Attached Image</span>
               <span class="text-[9.5px] text-on-surface-variant block truncate" id="attached-image-size">0 KB</span>
             </div>
           </div>
-          <button id="clear-image-btn" class="p-1 hover:bg-surface-variant rounded text-on-surface-variant hover:text-error transition-colors flex items-center justify-center shrink-0" title="Remove Image">
+          <button id="clear-image-btn" class="p-1 hover:bg-surface-variant rounded text-on-surface-variant hover:text-error transition-colors flex items-center justify-center shrink-0" data-i18n-title="REMOVE_IMAGE" title="Remove Image">
             <span class="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
 
         <div class="flex items-end gap-3 w-full">
-          <textarea id="prompt-input" rows="2" class="flex-1 bg-transparent border-none text-body-md text-on-background placeholder-outline resize-none focus:ring-0 p-1 min-h-[40px] max-h-32" placeholder="Send a prompt to the agent (Shift+Enter for new line)..."></textarea>
+          <textarea id="prompt-input" rows="2" class="flex-1 bg-transparent border-none text-body-md text-on-background placeholder-outline resize-none focus:ring-0 p-1 min-h-[40px] max-h-32" data-i18n-placeholder="PROMPT_INPUT_PLACEHOLDER" placeholder="Send a prompt to the agent (Shift+Enter for new line)..."></textarea>
           <button id="send-prompt-btn" class="p-2 bg-primary text-on-primary rounded hover:opacity-90 transition-opacity shrink-0 flex items-center justify-center" disabled>
             <span class="material-symbols-outlined text-[20px]">send</span>
           </button>
         </div>
       </div>
       <div class="flex items-center justify-between mt-2 font-label-sm text-label-sm text-on-surface-variant">
-        <span>Workspace: <strong id="active-ws-path" class="text-on-surface">None</strong></span>
-        <span>Press <kbd class="px-1.5 py-0.5 bg-surface-variant border border-outline-variant rounded font-code-sm text-code-sm">Enter</kbd> to run</span>
+        <span class="flex items-center gap-1"><span data-i18n="LABEL_WORKSPACE">Workspace:</span> <strong id="active-ws-path" class="text-on-surface">None</strong></span>
+        <span class="flex items-center gap-0.5">
+          <span data-i18n="PRESS_KBD_PRE">Press </span>
+          <kbd class="px-1.5 py-0.5 bg-surface-variant border border-outline-variant rounded font-code-sm text-code-sm mx-1">Enter</kbd>
+          <span data-i18n="PRESS_KBD_POST"> to run</span>
+        </span>
       </div>
     </div>
   </section>

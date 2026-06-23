@@ -386,7 +386,7 @@ ipcMain.handle('dialog:confirm', async (event, options) => {
 ipcMain.handle('dialog:alert', async (event, options) => {
   await dialog.showMessageBox(mainWindow, {
     type: 'info',
-    buttons: ['OK'],
+    buttons: [options.buttonLabel || 'OK'],
     defaultId: 0,
     title: options.title || 'Alert',
     message: options.message || '',
@@ -526,16 +526,21 @@ ipcMain.handle('cli:run-prompt', async (event, prompt, conversationId, workspace
   const settings = readCliSettings();
   const trimmedPrompt = prompt.trim();
   let adjustedPrompt = prompt;
-  if (!trimmedPrompt.startsWith('/')) {
-    if (mode === 'fast') {
-      adjustedPrompt = `/fast ${prompt}`;
-    } else if (mode === 'planning') {
-      adjustedPrompt = `/planning ${prompt}`;
+  let args = [];
+  if (prompt === '') {
+    args = ['--continue', '--print', ''];
+  } else {
+    if (!trimmedPrompt.startsWith('/')) {
+      if (mode === 'fast') {
+        adjustedPrompt = `/fast ${prompt}`;
+      } else if (mode === 'planning') {
+        adjustedPrompt = `/planning ${prompt}`;
+      }
     }
+    args = ['--print', adjustedPrompt];
   }
   
   const agyBin = getAgyExecutablePath();
-  const args = ['--print', adjustedPrompt];
   
   if (conversationId) {
     args.push('--conversation', conversationId);
@@ -786,6 +791,25 @@ ipcMain.handle('cli:get-tasks-list', async (event, conversationId) => {
     return { success: true, tasks };
   } catch (err) {
     console.error("Failed to get tasks list:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('cli:get-task-log', async (event, conversationId, taskId) => {
+  if (!conversationId || !taskId) return { success: false, error: 'Missing parameters' };
+  
+  const taskIdNum = taskId.replace('task-', '');
+  const homeDir = os.homedir();
+  const logPath = path.join(homeDir, '.gemini', 'antigravity-cli', 'brain', conversationId, '.system_generated', 'tasks', `task-${taskIdNum}.log`);
+  
+  if (!fs.existsSync(logPath)) {
+    return { success: false, error: `Log file not found for task ${taskId}` };
+  }
+  
+  try {
+    const content = fs.readFileSync(logPath, 'utf-8');
+    return { success: true, content };
+  } catch (err) {
     return { success: false, error: err.message };
   }
 });
