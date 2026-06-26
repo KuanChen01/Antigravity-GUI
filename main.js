@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, utilityProcess } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, utilityProcess, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -333,6 +333,36 @@ ipcMain.handle('config:delete-image-file', async (event, filePath) => {
   } catch (e) {
     console.error("Failed to delete temporary image file:", e);
     return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('config:read-image-data-url', async (event, filePath) => {
+  try {
+    let cleanPath = filePath;
+    if (cleanPath.startsWith('file:///')) {
+      cleanPath = cleanPath.substring(8);
+    }
+    const hashIdx = cleanPath.indexOf('#');
+    if (hashIdx !== -1) {
+      cleanPath = cleanPath.substring(0, hashIdx);
+    }
+    cleanPath = path.normalize(cleanPath);
+    
+    if (fs.existsSync(cleanPath)) {
+      const data = fs.readFileSync(cleanPath);
+      const ext = path.extname(cleanPath).toLowerCase();
+      let mime = 'image/png';
+      if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+      else if (ext === '.gif') mime = 'image/gif';
+      else if (ext === '.webp') mime = 'image/webp';
+      
+      return { success: true, dataUrl: `data:${mime};base64,${data.toString('base64')}` };
+    } else {
+      return { success: false, error: `File not found: ${cleanPath}` };
+    }
+  } catch (err) {
+    console.error("Failed to read image data URL:", err);
+    return { success: false, error: err.message };
   }
 });
 
@@ -915,6 +945,40 @@ function getLoginStatusFromLogs() {
 
 ipcMain.handle('cli:get-login-status', async () => {
   return getLoginStatusFromLogs();
+});
+
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to open external URL:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('open-file-path', async (event, filePath) => {
+  try {
+    let cleanPath = filePath;
+    if (cleanPath.startsWith('file:///')) {
+      cleanPath = cleanPath.substring(8);
+    }
+    const hashIdx = cleanPath.indexOf('#');
+    if (hashIdx !== -1) {
+      cleanPath = cleanPath.substring(0, hashIdx);
+    }
+    cleanPath = path.normalize(cleanPath);
+    
+    if (fs.existsSync(cleanPath)) {
+      await shell.openPath(cleanPath);
+      return { success: true };
+    } else {
+      return { success: false, error: `File not found: ${cleanPath}` };
+    }
+  } catch (err) {
+    console.error('Failed to open file path:', err);
+    return { success: false, error: err.message };
+  }
 });
 
 // Tool Permission Response Stdin writing

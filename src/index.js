@@ -11,7 +11,7 @@ let lastProcessedStepIndex = -1;
 let backgroundPollInterval = null;
 
 // Draft storage to preserve inputs across tab switching and conversation switching
-let conversationDrafts = {}; // { 'new' or conversationId: { promptText: '', attachedImage: null } }
+let conversationDrafts = {}; // { 'new' or conversationId: { promptText: '', attachedImages: [] } }
 
 // Dialog wrappers to prevent focus loss in Electron
 async function appConfirm(message, title = '') {
@@ -277,11 +277,11 @@ function escapeHTML(str) {
   );
 }
 
-// Safely format message bodies (escapes raw HTML, preserves code blocks)
-function formatMessageText(text) {
+// Safely format message bodies and render Markdown elements
+function formatMessageText(text, isUser = false) {
   if (!text) return '';
   
-  // Split text by fenced code blocks
+  // 1. Split text by fenced code blocks
   const parts = text.split(/(```[\s\S]*?```)/g);
   
   return parts.map(part => {
@@ -290,18 +290,224 @@ function formatMessageText(text) {
       if (match) {
         const lang = match[1] || 'code';
         const code = match[2];
-        return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded font-code-sm text-code-sm text-on-surface overflow-x-auto my-3"><div class="text-[10px] text-outline mb-1 font-sans uppercase font-bold border-b border-outline-variant/30 pb-1">${escapeHTML(lang)}</div><code class="block whitespace-pre select-text">${escapeHTML(code.trim())}</code></pre>`;
+        return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl font-code-sm text-code-sm text-on-surface overflow-x-auto my-3 shadow-inner"><div class="text-[10px] text-outline mb-2 font-sans uppercase font-bold border-b border-outline-variant/20 pb-1.5 flex items-center justify-between"><span>${escapeHTML(lang)}</span><span class="material-symbols-outlined text-[12px] opacity-60">code</span></div><code class="block whitespace-pre select-text leading-relaxed">${escapeHTML(code.trim())}</code></pre>`;
       }
-      return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded font-code-sm text-code-sm text-on-surface overflow-x-auto my-3"><code class="block whitespace-pre select-text">${escapeHTML(part)}</code></pre>`;
+      return `<pre class="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl font-code-sm text-code-sm text-on-surface overflow-x-auto my-3 shadow-inner"><code class="block whitespace-pre select-text leading-relaxed">${escapeHTML(part)}</code></pre>`;
     } else {
-      let html = escapeHTML(part);
-      // Format inline code: `code`
-      html = html.replace(/`([^`]+)`/g, '<code class="bg-surface-variant/50 px-1.5 py-0.5 rounded font-code-sm text-code-sm text-primary">$1</code>');
-      // Format line breaks
-      html = html.replace(/\n/g, '<br/>');
-      return html;
+      // Parse general Markdown block and inline elements
+      let lines = part.split('\n');
+      let htmlLines = [];
+      let inList = false;
+      let listType = null; // 'ul' or 'ol'
+      let inBlockquote = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        
+        // Blockquote support
+        if (line.trim().startsWith('>')) {
+          if (!inBlockquote) {
+            if (inList) {
+              htmlLines.push(`</${listType}>`);
+              inList = false;
+              listType = null;
+            }
+            const bqBgClass = isUser ? 'bg-white/10' : 'bg-surface-container-high/40';
+            const bqBorderClass = isUser ? 'border-on-primary/40' : 'border-primary';
+            const bqTextClass = isUser ? 'text-on-primary/90' : 'text-on-surface-variant';
+            htmlLines.push(`<blockquote class="border-l-4 ${bqBorderClass} ${bqBgClass} pl-4 py-2.5 my-3 ${bqTextClass} italic rounded-r-lg shadow-sm">`);
+            inBlockquote = true;
+          }
+          line = line.trim().substring(1).trim();
+        } else if (inBlockquote && line.trim() === '') {
+          htmlLines.push('</blockquote>');
+          inBlockquote = false;
+        }
+
+        // Horizontal Rule
+        if (line.trim() === '---' || line.trim() === '***' || line.trim() === '___') {
+          if (inList) {
+            htmlLines.push(`</${listType}>`);
+            inList = false;
+            listType = null;
+          }
+          if (inBlockquote) {
+            htmlLines.push('</blockquote>');
+            inBlockquote = false;
+          }
+          const hrBorderClass = isUser ? 'border-on-primary/20' : 'border-outline-variant/30';
+          htmlLines.push(`<hr class="my-4 ${hrBorderClass}" />`);
+          continue;
+        }
+
+        // Headings
+        const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+        if (headingMatch) {
+          if (inList) {
+            htmlLines.push(`</${listType}>`);
+            inList = false;
+            listType = null;
+          }
+          if (inBlockquote) {
+            htmlLines.push('</blockquote>');
+            inBlockquote = false;
+          }
+          const level = headingMatch[1].length;
+          const content = parseInlineMarkdown(headingMatch[2], isUser);
+          
+          let classes = '';
+          if (isUser) {
+            if (level === 1) classes = 'text-base font-bold text-on-primary mt-4 mb-2 border-b border-on-primary/20 pb-1 block';
+            else if (level === 2) classes = 'text-[14.5px] font-bold text-on-primary mt-3.5 mb-1.5 block';
+            else if (level === 3) classes = 'text-[13.5px] font-bold text-on-primary/90 mt-3 mb-1 block';
+            else classes = 'text-[13px] font-bold text-on-primary/80 mt-2.5 mb-1 block';
+          } else {
+            if (level === 1) classes = 'text-base font-bold text-primary mt-4 mb-2 border-b border-outline-variant/30 pb-1 block';
+            else if (level === 2) classes = 'text-[14.5px] font-bold text-on-background mt-3.5 mb-1.5 block';
+            else if (level === 3) classes = 'text-[13.5px] font-bold text-on-background/90 mt-3 mb-1 block';
+            else classes = 'text-[13px] font-bold text-on-background/80 mt-2.5 mb-1 block';
+          }
+          
+          htmlLines.push(`<h${level} class="${classes}">${content}</h${level}>`);
+          continue;
+        }
+
+        // List items
+        const ulMatch = line.match(/^(\s*)([-*+])\s+(.*)$/);
+        const olMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+
+        if (ulMatch || olMatch) {
+          const isOl = !!olMatch;
+          const match = isOl ? olMatch : ulMatch;
+          const content = parseInlineMarkdown(match[3], isUser);
+          const currentListType = isOl ? 'ol' : 'ul';
+
+          if (!inList) {
+            inList = true;
+            listType = currentListType;
+            const listClass = isOl ? 'list-decimal pl-6 my-2 space-y-1.5' : 'list-disc pl-6 my-2 space-y-1.5';
+            htmlLines.push(`<${listType} class="${listClass}">`);
+          } else if (listType !== currentListType) {
+            htmlLines.push(`</${listType}>`);
+            listType = currentListType;
+            const listClass = isOl ? 'list-decimal pl-6 my-2 space-y-1.5' : 'list-disc pl-6 my-2 space-y-1.5';
+            htmlLines.push(`<${listType} class="${listClass}">`);
+          }
+
+          const liTextClass = isUser ? 'text-[13px] text-on-primary leading-relaxed' : 'text-[13px] text-on-surface leading-relaxed';
+          htmlLines.push(`<li class="${liTextClass}">${content}</li>`);
+          continue;
+        }
+
+        // List continuation or closing list
+        if (inList) {
+          if (line.trim() !== '') {
+            if (line.startsWith('  ') || line.startsWith('\t')) {
+              const content = parseInlineMarkdown(line.trim(), isUser);
+              const contTextClass = isUser ? 'text-on-primary/80' : 'text-on-surface-variant';
+              htmlLines.push(`<div class="pl-4 text-[12.5px] ${contTextClass} mt-1 leading-relaxed">${content}</div>`);
+              continue;
+            } else {
+              htmlLines.push(`</${listType}>`);
+              inList = false;
+              listType = null;
+            }
+          } else {
+            htmlLines.push(`</${listType}>`);
+            inList = false;
+            listType = null;
+          }
+        }
+
+        // Plain paragraph text
+        if (line.trim() !== '') {
+          const content = parseInlineMarkdown(line, isUser);
+          if (inBlockquote) {
+            htmlLines.push(`<p class="my-1 text-[13px] leading-relaxed">${content}</p>`);
+          } else {
+            const isImageBlock = line.trim().match(/^\[(?:已附图片|Attached Image):\s*[^\]]+\]$/i);
+            if (isImageBlock) {
+              htmlLines.push(content);
+            } else {
+              const pTextClass = isUser ? 'text-on-primary' : 'text-on-surface';
+              htmlLines.push(`<p class="text-[13px] ${pTextClass} leading-relaxed my-2">${content}</p>`);
+            }
+          }
+        } else {
+          if (!inBlockquote) {
+            htmlLines.push('<div class="h-2"></div>');
+          }
+        }
+      }
+
+      if (inList) {
+        htmlLines.push(`</${listType}>`);
+      }
+      if (inBlockquote) {
+        htmlLines.push('</blockquote>');
+      }
+
+      return htmlLines.join('\n');
     }
   }).join('');
+}
+
+function parseInlineMarkdown(text, isUser = false) {
+  let html = escapeHTML(text);
+  
+  // 1. Extract attached images to placeholders to protect them from subsequent markdown regexes
+  const extractedImages = [];
+  html = html.replace(/\[(?:已附图片|Attached Image):\s*([^\]]+)\]/gi, (match, filePath) => {
+    const placeholder = `%%ATTACHEDIMAGETEMP${extractedImages.length}%%`;
+    extractedImages.push(filePath.trim());
+    return placeholder;
+  });
+  
+  // Inline code: `code`
+  const codeBgClass = isUser ? 'bg-white/15 text-on-primary' : 'bg-surface-variant/50 text-primary';
+  html = html.replace(/`([^`]+)`/g, `<code class="${codeBgClass} px-1.5 py-0.5 rounded font-code-sm text-code-sm">$1</code>`);
+  
+  // Bold: **bold** or __bold__
+  const strongClass = isUser ? 'font-bold text-white' : 'font-bold text-on-background';
+  html = html.replace(/\*\*([^*]+)\*\*/g, `<strong class="${strongClass}">$1</strong>`);
+  html = html.replace(/__([^_]+)__/g, `<strong class="${strongClass}">$1</strong>`);
+  
+  // Italic: *italic* or _italic_
+  const emClass = isUser ? 'italic text-on-primary/95' : 'italic text-on-surface/90';
+  html = html.replace(/\*([^*]+)\*/g, `<em class="${emClass}">$1</em>`);
+  html = html.replace(/_([^_]+)_/g, `<em class="${emClass}">$1</em>`);
+  
+  // Links: [text](url)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+    let classes = 'underline hover:opacity-85 transition-colors inline-flex items-center gap-0.5';
+    if (isUser) {
+      classes += ' text-on-primary font-bold cursor-pointer';
+    } else {
+      classes += ' text-primary font-bold cursor-pointer';
+    }
+    const safeUrl = url.replace(/\\/g, '/').replace(/&amp;/g, '&').replace(/"/g, '&quot;');
+    if (url.startsWith('file:///')) {
+      return `<a href="${safeUrl}" class="${classes}" onclick="event.preventDefault(); window.api.openFilePath('${safeUrl}')"><span class="material-symbols-outlined text-[14px]">link</span><span>${linkText}</span></a>`;
+    }
+    return `<a href="${safeUrl}" class="${classes}" onclick="event.preventDefault(); window.api.openExternal('${safeUrl}')"><span class="material-symbols-outlined text-[14px]">open_in_new</span><span>${linkText}</span></a>`;
+  });
+  
+  // 2. Restore placeholders with clean image preview HTML
+  html = html.replace(/%%ATTACHEDIMAGETEMP(\d+)%%/g, (match, indexStr) => {
+    const idx = parseInt(indexStr, 10);
+    const filePath = extractedImages[idx];
+    if (filePath === undefined) return '';
+    const safeFilePath = escapeHTML(filePath);
+    return `
+<div class="mt-2 mb-2 block relative max-w-sm rounded-lg overflow-hidden border border-outline-variant/30 shadow-sm cursor-pointer hover:opacity-95 transition-opacity chat-image-preview-wrapper" data-filepath="${safeFilePath}">
+  <img class="chat-attached-image max-h-48 object-contain bg-surface-container-low rounded-lg" data-filepath="${safeFilePath}" src="" alt="Loading image..." />
+  <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity rounded-lg">
+    <span class="material-symbols-outlined text-white text-[24px]">zoom_in</span>
+  </div>
+</div>`;
+  });
+  
+  return html;
 }
 
 // DOM Cache
@@ -727,38 +933,177 @@ async function initConversationView() {
   const clearImageBtn = document.getElementById('clear-image-btn');
 
   let allConvs = [];
-  let activeAttachedImage = null;
+  let activeAttachedImages = [];
+  let imageDataUrlCache = {};
   let tempImagesToDelete = [];
   let shouldAutoScrollSteps = true;
+
+  function showZoomedImage(dataUrl) {
+    const modalId = 'image-zoom-modal';
+    let modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 transition-all duration-300 opacity-0';
+    modal.innerHTML = `
+      <div class="absolute top-4 right-4 flex items-center gap-3 z-10">
+        <button id="zoom-close-btn" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shadow-lg">
+          <span class="material-symbols-outlined text-[24px]">close</span>
+        </button>
+      </div>
+      <div class="relative max-w-full max-h-full flex items-center justify-center transform scale-95 transition-all duration-300 zoom-image-container">
+        <img src="${dataUrl}" class="max-w-[95vw] max-h-[90vh] object-contain rounded shadow-2xl select-none" />
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Trigger transition
+    requestAnimationFrame(() => {
+      modal.classList.remove('opacity-0');
+      modal.querySelector('.zoom-image-container').classList.remove('scale-95');
+      modal.querySelector('.zoom-image-container').classList.add('scale-100');
+    });
+
+    function closeModal() {
+      modal.classList.add('opacity-0');
+      modal.querySelector('.zoom-image-container').classList.remove('scale-100');
+      modal.querySelector('.zoom-image-container').classList.add('scale-95');
+      setTimeout(() => {
+        modal.remove();
+        document.removeEventListener('keydown', handleKeyDown);
+      }, 300);
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    }
+
+    modal.querySelector('#zoom-close-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('.zoom-image-container') === null) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', handleKeyDown);
+  }
+
+  function bindImageEvents() {
+    const imgElements = chatMessages.querySelectorAll('.chat-attached-image');
+    imgElements.forEach(async (img) => {
+      const filePath = img.getAttribute('data-filepath');
+      if (!filePath) return;
+
+      if (imageDataUrlCache[filePath]) {
+        img.src = imageDataUrlCache[filePath];
+        return;
+      }
+
+      try {
+        const res = await window.api.readImageAsDataUrl(filePath);
+        if (res.success && res.dataUrl) {
+          imageDataUrlCache[filePath] = res.dataUrl;
+          img.src = res.dataUrl;
+        } else {
+          img.alt = currentLanguage === 'zh' ? '图片已失效' : 'Image unavailable';
+          img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="%23ff4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+        }
+      } catch (err) {
+        console.error("Failed to load attached image:", err);
+        img.alt = 'Error loading image';
+      }
+    });
+
+    const wrappers = chatMessages.querySelectorAll('.chat-image-preview-wrapper');
+    wrappers.forEach(wrapper => {
+      if (wrapper.getAttribute('data-zoom-bound')) return;
+      wrapper.setAttribute('data-zoom-bound', 'true');
+      
+      wrapper.addEventListener('click', (e) => {
+        e.preventDefault();
+        const img = wrapper.querySelector('.chat-attached-image');
+        if (img && img.src && !img.src.startsWith('data:image/svg+xml')) {
+          showZoomedImage(img.src);
+        }
+      });
+    });
+  }
+
+  function renderImagePreviews() {
+    if (!imagePreviewContainer) return;
+    
+    if (activeAttachedImages.length === 0) {
+      imagePreviewContainer.classList.add('hidden');
+      imagePreviewContainer.innerHTML = '';
+      updateInputState();
+      return;
+    }
+    
+    imagePreviewContainer.classList.remove('hidden');
+    imagePreviewContainer.className = "flex flex-wrap gap-2.5 bg-surface-container-low/60 border border-outline-variant/30 rounded p-2 shrink-0 max-h-24 overflow-y-auto";
+    imagePreviewContainer.innerHTML = activeAttachedImages.map((img, idx) => `
+      <div class="relative group w-12 h-12 shrink-0">
+        <img src="${img.dataSrc}" class="w-full h-full object-cover rounded border border-outline-variant" title="${escapeHTML(img.name)} (${img.size})" />
+        <button class="remove-single-image-btn absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-on-error rounded-full flex items-center justify-center hover:opacity-90 shadow-sm cursor-pointer" data-index="${idx}">
+          <span class="material-symbols-outlined text-[10px] font-bold">close</span>
+        </button>
+      </div>
+    `).join('');
+    
+    const removeBtns = imagePreviewContainer.querySelectorAll('.remove-single-image-btn');
+    removeBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(btn.getAttribute('data-index'), 10);
+        removeAttachedImageAt(index);
+      });
+    });
+    
+    updateInputState();
+  }
+
+  function removeAttachedImageAt(index) {
+    const img = activeAttachedImages[index];
+    if (img) {
+      window.api.deleteImageFile(img.filePath).catch(console.error);
+      activeAttachedImages.splice(index, 1);
+      
+      const key = currentConversationId || 'new';
+      if (conversationDrafts[key]) {
+        conversationDrafts[key].attachedImages = [...activeAttachedImages];
+      }
+      
+      renderImagePreviews();
+    }
+  }
 
   function restoreDraft() {
     const key = currentConversationId || 'new';
     const draft = conversationDrafts[key];
     if (draft) {
       if (promptInput) promptInput.value = draft.promptText || '';
-      if (draft.attachedImage) {
-        activeAttachedImage = draft.attachedImage.filePath;
-        if (!tempImagesToDelete.includes(activeAttachedImage)) {
-          tempImagesToDelete.push(activeAttachedImage);
-        }
-        if (attachedImageThumb) attachedImageThumb.src = draft.attachedImage.dataSrc || '';
-        if (attachedImageName) attachedImageName.textContent = draft.attachedImage.name || '';
-        if (attachedImageSize) attachedImageSize.textContent = draft.attachedImage.size || '';
-        if (imagePreviewContainer) imagePreviewContainer.classList.remove('hidden');
+      if (Array.isArray(draft.attachedImages) && draft.attachedImages.length > 0) {
+        activeAttachedImages = [...draft.attachedImages];
+        activeAttachedImages.forEach(img => {
+          if (!tempImagesToDelete.includes(img.filePath)) {
+            tempImagesToDelete.push(img.filePath);
+          }
+          imageDataUrlCache[img.filePath] = img.dataSrc;
+        });
+        renderImagePreviews();
       } else {
-        activeAttachedImage = null;
-        if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
-        if (attachedImageThumb) attachedImageThumb.src = '';
-        if (attachedImageName) attachedImageName.textContent = '';
-        if (attachedImageSize) attachedImageSize.textContent = '';
+        activeAttachedImages = [];
+        renderImagePreviews();
       }
     } else {
       if (promptInput) promptInput.value = '';
-      activeAttachedImage = null;
-      if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
-      if (attachedImageThumb) attachedImageThumb.src = '';
-      if (attachedImageName) attachedImageName.textContent = '';
-      if (attachedImageSize) attachedImageSize.textContent = '';
+      activeAttachedImages = [];
+      renderImagePreviews();
     }
     updateInputState();
   }
@@ -776,7 +1121,7 @@ async function initConversationView() {
 
   // Enable/disable send button based on prompt content and workspace
   function updateInputState() {
-    sendPromptBtn.disabled = isRunning || (!promptInput.value.trim() && !activeAttachedImage) || !activeWorkspace;
+    sendPromptBtn.disabled = isRunning || (!promptInput.value.trim() && activeAttachedImages.length === 0) || !activeWorkspace;
   }
 
   function formatElapsed(ms) {
@@ -876,7 +1221,7 @@ async function initConversationView() {
 
   promptInput.addEventListener('input', () => {
     const key = currentConversationId || 'new';
-    if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImage: null };
+    if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImages: [] };
     conversationDrafts[key].promptText = promptInput.value;
     updateInputState();
   });
@@ -896,36 +1241,31 @@ async function initConversationView() {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      attachedImageThumb.src = e.target.result;
-      attachedImageName.textContent = file.name || (currentLanguage === 'zh' ? '剪切板图片.png' : 'clipboard_image.png');
-      attachedImageSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-      imagePreviewContainer.classList.remove('hidden');
-
       try {
         const arrayBuffer = e.target.result.split(',')[1] 
           ? Uint8Array.from(atob(e.target.result.split(',')[1]), c => c.charCodeAt(0)).buffer
           : await file.arrayBuffer();
 
-        if (activeAttachedImage) {
-          await window.api.deleteImageFile(activeAttachedImage);
-        }
-
         const res = await window.api.saveImageFile(arrayBuffer, activeWorkspace);
         if (res.success) {
-          activeAttachedImage = res.filePath;
-          tempImagesToDelete.push(res.filePath);
-          
-          // Save to drafts
-          const key = currentConversationId || 'new';
-          if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImage: null };
-          conversationDrafts[key].attachedImage = {
+          const newImg = {
             filePath: res.filePath,
             name: file.name || (currentLanguage === 'zh' ? '剪切板图片.png' : 'clipboard_image.png'),
             size: `${(file.size / 1024).toFixed(1)} KB`,
             dataSrc: e.target.result
           };
+          activeAttachedImages.push(newImg);
+          tempImagesToDelete.push(res.filePath);
           
-          updateInputState();
+          // Cache data URL
+          imageDataUrlCache[res.filePath] = e.target.result;
+          
+          // Save to drafts
+          const key = currentConversationId || 'new';
+          if (!conversationDrafts[key]) conversationDrafts[key] = { promptText: '', attachedImages: [] };
+          conversationDrafts[key].attachedImages = [...activeAttachedImages];
+          
+          renderImagePreviews();
         } else {
           await appAlert(`Save failed: ${res.error}`);
         }
@@ -936,27 +1276,23 @@ async function initConversationView() {
     reader.readAsDataURL(file);
   }
 
-  function clearAttachedImage() {
-    if (activeAttachedImage) {
-      window.api.deleteImageFile(activeAttachedImage).catch(console.error);
-      activeAttachedImage = null;
-    }
-    // Clear from drafts
+  function clearAllAttachedImages() {
+    activeAttachedImages.forEach(img => {
+      window.api.deleteImageFile(img.filePath).catch(console.error);
+    });
+    activeAttachedImages = [];
+    
     const key = currentConversationId || 'new';
     if (conversationDrafts[key]) {
-      conversationDrafts[key].attachedImage = null;
+      conversationDrafts[key].attachedImages = [];
     }
-    imagePreviewContainer.classList.add('hidden');
-    attachedImageThumb.src = '';
-    attachedImageName.textContent = '';
-    attachedImageSize.textContent = '';
-    updateInputState();
+    renderImagePreviews();
   }
 
   if (clearImageBtn) {
     clearImageBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      clearAttachedImage();
+      clearAllAttachedImages();
     });
   }
 
@@ -997,10 +1333,14 @@ async function initConversationView() {
 
       const files = e.dataTransfer.files;
       if (files.length > 0) {
-        const file = files[0];
-        if (file.type.indexOf('image') !== -1) {
-          handleAttachedImage(file);
-        } else {
+        let hasImage = false;
+        for (const file of files) {
+          if (file.type.indexOf('image') !== -1) {
+            hasImage = true;
+            await handleAttachedImage(file);
+          }
+        }
+        if (!hasImage) {
           await appAlert(currentLanguage === 'zh' ? '仅支持拖拽图片文件！' : 'Only image files are supported!');
         }
       }
@@ -1602,9 +1942,11 @@ async function initConversationView() {
     let html = '';
 
     turns.forEach((turn, turnIdx) => {
+      const isLastTurn = turnIdx === turns.length - 1;
+
       // 1. Render User Prompt
       if (turn.userPrompt) {
-        const textFormatted = formatMessageText(turn.userPrompt.message.text);
+        const textFormatted = formatMessageText(turn.userPrompt.message.text, true);
         html += `
           <div class="flex justify-end mb-4">
             <div class="max-w-[85%] bg-primary text-on-primary rounded-2xl rounded-tr-none px-4 py-3 shadow-sm select-text border border-primary/20">
@@ -1638,6 +1980,15 @@ async function initConversationView() {
                     <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
                   </div>
                   ${step.toolCall.explanation ? `<p class="text-[11.5px] text-on-surface-variant italic leading-relaxed select-text">${escapeHTML(step.toolCall.explanation)}</p>` : ''}
+                  ${step.toolCall.thoughts ? `
+                    <div class="text-[11px] text-on-surface-variant bg-purple-500/5 border border-purple-500/10 rounded-lg p-2.5 mb-2 select-text leading-relaxed font-sans">
+                      <div class="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold mb-1">
+                        <span class="material-symbols-outlined text-[14px]">psychology</span>
+                        <span>${currentLanguage === 'zh' ? '思考过程' : 'Thinking Process'}</span>
+                      </div>
+                      <div>${formatMessageText(step.toolCall.thoughts)}</div>
+                    </div>
+                  ` : ''}
                   <details class="text-[11px] text-on-surface-secondary border border-outline-variant/30 rounded bg-background/50 overflow-hidden">
                     <summary class="cursor-pointer font-bold select-none p-1.5 hover:bg-surface-variant/30 flex items-center gap-1.5 text-outline">
                       <span class="material-symbols-outlined text-[12px]">code</span>
@@ -1694,7 +2045,7 @@ async function initConversationView() {
                     </span>
                     <span class="text-[10px] text-outline font-code-sm">Step #${step.index}</span>
                   </div>
-                  <p class="text-[11.5px] text-on-surface-variant whitespace-pre-wrap leading-relaxed select-text font-sans">${escapeHTML(step.message.text)}</p>
+                  <div class="text-[11px] text-on-surface-variant select-text font-sans">${formatMessageText(step.message.text)}</div>
                 </div>
               </div>
             `;
@@ -1722,7 +2073,9 @@ async function initConversationView() {
           : `${turn.executionSteps.length} background steps executed`;
 
         const detailsId = `${currentConversationId || runTracking.liveConversationId}_${turnIdx}_steps`;
-        const isOpen = !!openDetailsState[detailsId];
+        const isOpen = openDetailsState[detailsId] !== undefined 
+          ? openDetailsState[detailsId] 
+          : isLastTurn;
 
         html += `
           <div class="my-4 select-none">
@@ -1753,14 +2106,16 @@ async function initConversationView() {
         let thoughtsHtml = '';
         if (turn.agentResponse.message.thoughts) {
           const thoughtsId = `${currentConversationId || runTracking.liveConversationId}_${turnIdx}_thoughts`;
-          const isThoughtsOpen = !!openDetailsState[thoughtsId];
+          const isThoughtsOpen = openDetailsState[thoughtsId] !== undefined
+            ? openDetailsState[thoughtsId]
+            : isLastTurn;
           thoughtsHtml = `
             <details data-details-id="${thoughtsId}" ${isThoughtsOpen ? 'open' : ''} class="mb-3 text-label-sm text-on-surface-variant bg-surface-container/60 rounded border border-outline-variant/40 p-2.5">
               <summary class="cursor-pointer font-bold select-none hover:text-primary transition-colors flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
                 ${currentLanguage === 'zh' ? '查看思考过程' : 'View Thinking Process'}
               </summary>
-              <div class="mt-2 pl-6 whitespace-pre-wrap select-text leading-relaxed font-sans text-on-surface-variant">${escapeHTML(turn.agentResponse.message.thoughts)}</div>
+              <div class="mt-2 pl-6 select-text leading-relaxed font-sans text-on-surface-variant">${formatMessageText(turn.agentResponse.message.thoughts)}</div>
             </details>
           `;
         }
@@ -1780,6 +2135,13 @@ async function initConversationView() {
         `;
       }
     });
+
+    if (isRunning) {
+      const lastTurn = turns[turns.length - 1];
+      if (lastTurn && !lastTurn.agentResponse) {
+        html += renderAssistantPlaceholder();
+      }
+    }
 
     chatMessages.innerHTML = html;
 
@@ -1807,12 +2169,13 @@ async function initConversationView() {
 
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    bindImageEvents();
   }
 
   // Trigger prompt submission
   async function submitPrompt() {
     const prompt = promptInput.value.trim();
-    if ((!prompt && !activeAttachedImage) || isRunning || !activeWorkspace) return;
+    if ((!prompt && activeAttachedImages.length === 0) || isRunning || !activeWorkspace) return;
 
     const tasksMatch = prompt.match(/^\/(tasks|task)(?:\s+(task-\d+|\d+))?$/);
     if (tasksMatch) {
@@ -1918,22 +2281,21 @@ async function initConversationView() {
     delete conversationDrafts[key];
     
     let finalPrompt = prompt;
-    const attachedImgPath = activeAttachedImage;
-    if (attachedImgPath) {
-      const imgLine = currentLanguage === 'zh'
-        ? `\n\n[已附图片: ${attachedImgPath}]`
-        : `\n\n[Attached Image: ${attachedImgPath}]`;
-      finalPrompt = prompt + imgLine;
+    if (activeAttachedImages.length > 0) {
+      const imgLines = activeAttachedImages.map(img => {
+        return currentLanguage === 'zh'
+          ? `\n[已附图片: ${img.filePath}]`
+          : `\n[Attached Image: ${img.filePath}]`;
+      }).join('');
+      finalPrompt = prompt + imgLines;
     }
     
-    // Clear preview immediately from input field after submission
-    if (activeAttachedImage) {
-      activeAttachedImage = null;
-      imagePreviewContainer.classList.add('hidden');
-      attachedImageThumb.src = '';
-      attachedImageName.textContent = '';
-      attachedImageSize.textContent = '';
+    // Clear preview immediately from input field after submission (without deleting from disk)
+    activeAttachedImages = [];
+    if (conversationDrafts[key]) {
+      conversationDrafts[key].attachedImages = [];
     }
+    renderImagePreviews();
     
     updateInputState();
     
@@ -1941,18 +2303,21 @@ async function initConversationView() {
     stepLogs.innerHTML = '';
     startLiveRunTracking();
     
-    // Add user message mock in list
+    // Add user message mock in list with formatted elements
     chatMessages.innerHTML += `
-      <div class="p-4 rounded-lg border border-outline-variant bg-surface-container-low border-l-4 border-secondary space-y-2">
-        <div class="flex items-center justify-between font-label-sm text-label-sm shrink-0">
-          <span class="font-bold text-on-background">User Instruction</span>
-          <span class="text-outline">Running...</span>
+      <div class="flex justify-end mb-4">
+        <div class="max-w-[85%] bg-primary text-on-primary rounded-2xl rounded-tr-none px-4 py-3 shadow-sm select-text border border-primary/20">
+          <div class="flex items-center gap-2 mb-1.5 opacity-80 font-bold text-[10px] shrink-0">
+            <span class="material-symbols-outlined text-[12px]">person</span>
+            <span>${currentLanguage === 'zh' ? '用户指令' : 'User Instruction'}</span>
+            <span class="ml-auto opacity-60">Running...</span>
+          </div>
+          <div class="text-[13px] leading-relaxed whitespace-pre-wrap">${formatMessageText(finalPrompt, true)}</div>
         </div>
-        <p class="text-body-md text-on-surface select-text">${prompt.replace(/\n/g, '<br/>')}</p>
-        ${attachedImgPath ? `<p class="text-[11px] text-primary italic font-bold">Image attached: ${pathBasename(attachedImgPath)}</p>` : ''}
       </div>
       ${renderAssistantPlaceholder()}
     `;
+    bindImageEvents();
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
     try {
@@ -2082,22 +2447,14 @@ async function initConversationView() {
     // Save draft before navigating away
     const key = currentConversationId || 'new';
     if (!conversationDrafts[key]) {
-      conversationDrafts[key] = { promptText: '', attachedImage: null };
+      conversationDrafts[key] = { promptText: '', attachedImages: [] };
     }
     if (promptInput) {
       conversationDrafts[key].promptText = promptInput.value;
     }
-    if (activeAttachedImage) {
-      conversationDrafts[key].attachedImage = {
-        filePath: activeAttachedImage,
-        name: attachedImageName.textContent,
-        size: attachedImageSize.textContent,
-        dataSrc: attachedImageThumb.src
-      };
-      activeAttachedImage = null;
-    } else {
-      conversationDrafts[key].attachedImage = null;
-    }
+    conversationDrafts[key].attachedImages = [...activeAttachedImages];
+    activeAttachedImages = [];
+    renderImagePreviews();
     tempImagesToDelete = [];
 
     navigateTo = oldNavigateTo; // restore

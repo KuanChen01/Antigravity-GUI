@@ -63,5 +63,8 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('updater:status', subscription);
     return () => ipcRenderer.removeListener('updater:status', subscription);
   },
-  quitAndInstallApp: () => ipcRenderer.invoke('cli:quit-and-install')
+  quitAndInstallApp: () => ipcRenderer.invoke('cli:quit-and-install'),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openFilePath: (filePath) => ipcRenderer.invoke('open-file-path', filePath),
+  readImageAsDataUrl: (filePath) => ipcRenderer.invoke('config:read-image-data-url', filePath)
 });
