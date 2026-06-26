@@ -8,6 +8,7 @@ let pendingNewConversationContext = null;
 let openDetailsState = {};
 let detailsScrollState = {}; // { detailsId: { scrollTop: number, shouldAutoScroll: boolean } }
 let lastProcessedStepIndex = -1;
+let lastResumedStepIndexMap = {};
 let backgroundPollInterval = null;
 
 // Draft storage to preserve inputs across tab switching and conversation switching
@@ -1880,7 +1881,8 @@ async function initConversationView() {
           const hasTaskNotification = lastStep.rawStrings && lastStep.rawStrings.some(str => 
             str.includes('task_notification') || str.includes('finished with result') || str.includes('was canceled') || str.includes('canceled')
           );
-          if (hasTaskNotification) {
+          if (hasTaskNotification && lastResumedStepIndexMap[id] !== lastStep.index) {
+            lastResumedStepIndexMap[id] = lastStep.index;
             console.log("Loaded conversation ends in task notification. Auto-resuming...");
             isRunning = true;
             updateInputState();
@@ -2502,6 +2504,7 @@ async function initConversationView() {
 
         if (shouldAutoResume) {
           lastProcessedStepIndex = maxStepIdx; // Update to prevent duplicate trigger
+          lastResumedStepIndexMap[currentConversationId] = maxStepIdx; // Prevent duplicate trigger from loadConversationDetails
           
           isRunning = true;
           updateInputState();
